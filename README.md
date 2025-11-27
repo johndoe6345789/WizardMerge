@@ -1,5 +1,10 @@
 # WizardMerge
 
+
+SEE ALSO: https://github.com/JohnDoe6345789/mergebot
+
+
+
 PyQt6 + QML demo application that showcases a themed UI shell alongside simple
 merge algorithm helpers. The project ships with a theming plugin system so you
 can extend the UI palette without touching the core code.
