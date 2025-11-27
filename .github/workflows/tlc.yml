@@ -1,0 +1,59 @@
+name: TLC
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # we need history to switch/create branches
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # If you ever need a specific Python version, add setup-python here
+      # - uses: actions/setup-python@v5
+      #   with:
+      #     python-version: '3.12'
+
+      - name: Run TLC and capture logs
+        run: |
+          python3 scripts/tlaplus.py run
+
+      - name: Push TLC results to ci/test-results branch
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          # Configure git identity for CI commits
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Make sure we know about remote branches
+          git fetch origin
+
+          # Create or reset local ci/test-results branch to current main
+          git checkout -B ci/test-results
+
+          mkdir -p ci/test-results
+
+          # Copy latest results into branch; you can add timestamps/paths as you like
+          cp -r ci-results/* ci/test-results/ || true
+
+          git add ci/test-results
+
+          # Don't fail the workflow if nothing changed
+          git commit -m "TLC results run ${GITHUB_RUN_NUMBER}" || echo "No changes to commit"
+
+          git push origin ci/test-results
