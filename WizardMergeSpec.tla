@@ -1,0 +1,291 @@
+------------------------------- MODULE WizardMergeSpec -------------------------------
+EXTENDS Naturals, FiniteSets
+
+(*
+  High-level intent
+
+  This module formalizes the core of WizardMerge's merge-handling logic at the
+  dependency-graph level. It abstracts away concrete source code and LLVM IR and
+  instead reasons about:
+
+    - Vertices: fine-grained DCB-bearing definition nodes in the Shrunk
+      Dependency Graphs (SDGs) for VA and VB.
+
+    - Edges: directed dependency edges v -> u in those SDGs.
+
+    - Per-vertex status in the merged result:
+        * applied        (vertex chosen by Git's textual merge)
+        * conflict       (vertex is part of a conflict in Git's textual merge)
+        * not-applied    (vertex is discarded in the merge)
+
+    - Mirror mapping Mi(v): the "mirror" vertex of v in the other SDG.
+
+    - Matching information: whether a mirror node Mi(v) is a "matching" node
+      (same definition name and compatible DCB metadata).
+
+  The key objective is to classify edges as safe vs. violated according to the
+  edge-sensitive rules (1)-(6) in the paper, and to derive the set of violated
+  vertices/DCBs. A "properly handled" merge is one where there are no violated
+  edges (GoodMerge = TRUE).
+*)
+
+CONSTANTS
+  (*
+    Three versions used by the textual three-way merge:
+      - Base : common ancestor commit
+      - VA   : Variant A
+      - VB   : Variant B
+
+    These are only used as tags; they are assumed to be distinct.
+  *)
+  Base, VA, VB,
+
+  (*
+    VERTICES: the set of all vertices (fine-grained definition/DCB nodes) that
+    appear in either SDG (for VA or VB). Each vertex belongs to exactly one
+    SDG (either VA's or VB's).
+  *)
+  VERTICES,
+
+  (*
+    EDGES: the set of dependency edges in both SDGs. Each edge is a record
+    [from |-> v, to |-> u], which corresponds to v -> u (v depends on u).
+  *)
+  EDGES,
+
+  (*
+    VersionTag: a function that maps each vertex to the SDG it belongs to,
+    i.e. either VA or VB. Base is never used as a VersionTag value.
+  *)
+  VersionTag,
+
+  (*
+    Mirror: Mi(v) in the paper. For a vertex v in one SDG, Mirror[v] is the
+    unique corresponding vertex in the other SDG. Mirror is a bijection and
+    an involution (Mirror[Mirror[v]] = v).
+  *)
+  Mirror,
+
+  (*
+    MatchSet: the set of vertices whose mirror node is a "matching" node
+    according to the graph-text alignment phase (same definition and aligned
+    DCB metadata). In the paper this is match(Mi(v)) = True/False.
+    Here we encode it as a unary predicate: v ∈ MatchSet.
+  *)
+  MatchSet,
+
+  (*
+    AppliedSet: the set V_A of vertices whose DCBs are applied in the merged
+    textual result from Git (non-conflicting choice).
+  *)
+  AppliedSet,
+
+  (*
+    ConflictSet: the set V_C of vertices that are part of a textual conflict
+    produced by Git.
+  *)
+  ConflictSet
+
+(***************************************************************************)
+(* Basic derived sets and assumptions                                      *)
+(***************************************************************************)
+
+(*
+  NotAppliedSet: the set V_N of vertices that are not applied in the textual
+  merge result (they are discarded or overshadowed).
+*)
+NotAppliedSet ==
+  VERTICES \ (AppliedSet \cup ConflictSet)
+
+(*
+  Sanity assumptions about the configuration. These are required to model the
+  SDG properties stated in the paper.
+*)
+ASSUME
+  /\ AppliedSet \subseteq VERTICES
+  /\ ConflictSet \subseteq VERTICES
+  /\ AppliedSet \cap ConflictSet = {}               \* no vertex is both applied and conflicted
+  /\ EDGES \subseteq [from : VERTICES, to : VERTICES]
+  /\ MatchSet \subseteq VERTICES
+  /\ VersionTag \in [VERTICES -> {VA, VB}]
+  /\ Mirror \in [VERTICES -> VERTICES]
+  /\ \A v \in VERTICES : Mirror[Mirror[v]] = v      \* Mirror is an involution
+  /\ \A v \in VERTICES : VersionTag[Mirror[v]] # VersionTag[v]
+       \* Mirror always points into the "other" SDG
+  /\ \A v \in VERTICES :
+       (*
+         SDG facts from the paper:
+
+           - If v ∈ V_A (applied) then Mi(v) ∈ V_N (not applied), and vice versa.
+           - If v ∈ V_C (conflict) then Mi(v) ∈ V_C as well.
+       *)
+       (v \in AppliedSet)  <=>  (Mirror[v] \in NotAppliedSet)
+       /\ (v \in ConflictSet) <=> (Mirror[v] \in ConflictSet)
+
+(***************************************************************************)
+(* Status predicates                                                        *)
+(***************************************************************************)
+
+IsApplied(v)  == v \in AppliedSet
+IsConflict(v) == v \in ConflictSet
+IsNotApplied(v) == v \in NotAppliedSet
+
+(*
+  MirrorMatch(v) corresponds to match(Mi(v)) = True for the mirror node of v.
+  Since MatchSet is defined over the original vertex set, we test membership
+  for Mirror[v].
+*)
+MirrorMatch(v) == Mirror[v] \in MatchSet
+
+(***************************************************************************)
+(* Edge classification: Safe vs Violated                                   *)
+(***************************************************************************)
+
+(*
+  The six scenarios in the paper are phrased over edges e = (v, u) with v
+  depending on u. We encode them as predicates over (v, u).
+
+  Safe scenarios (Equations (1)-(4) in the paper):
+
+    (1) v ∈ V_A, u ∈ V_A
+    (2) v ∈ V_A, u ∉ V_A, match(Mi(u)) = True
+    (3) v ∈ V_C, u ∈ V_A
+    (4) v ∈ V_C, u ∉ V_A, match(Mi(u)) = True
+
+  Violated scenarios (Equations (5)-(6)):
+
+    (5) v ∈ V_A, u ∉ V_A, match(Mi(u)) = False
+    (6) v ∈ V_C, u ∉ V_A, match(Mi(u)) = False
+
+  All scenarios not detected as safe are treated as violated in the algorithm.
+*)
+
+SafeEdge(v, u) ==
+  \/ (IsApplied(v) /\ IsApplied(u))                         \* (1)
+  \/ (IsApplied(v) /\ ~IsApplied(u) /\ MirrorMatch(u))      \* (2)
+  \/ (IsConflict(v) /\ IsApplied(u))                        \* (3)
+  \/ (IsConflict(v) /\ ~IsApplied(u) /\ MirrorMatch(u))     \* (4)
+
+ViolatedEdge(v, u) ==
+  \/ (IsApplied(v) /\ ~IsApplied(u) /\ ~MirrorMatch(u))     \* (5)
+  \/ (IsConflict(v) /\ ~IsApplied(u) /\ ~MirrorMatch(u))    \* (6)
+
+(*
+  Edge-level classification, as sets of EDGES.
+*)
+
+SafeEdges ==
+  { e \in EDGES :
+       LET v == e.from
+           u == e.to
+       IN  SafeEdge(v, u)
+  }
+
+ViolatedEdges ==
+  { e \in EDGES :
+       LET v == e.from
+           u == e.to
+       IN  ViolatedEdge(v, u)
+  }
+
+(*
+  In the intended algorithm, every edge encountered during SDG traversal is
+  either safe or violated (never both).
+*)
+EdgePartitionInvariant ==
+  /\ SafeEdges \cap ViolatedEdges = {}
+  /\ \A e \in EDGES :
+       LET v == e.from
+           u == e.to
+       IN  SafeEdge(v, u) \/ ViolatedEdge(v, u)
+
+(***************************************************************************)
+(* Violated vertices and DCBs                                              *)
+(***************************************************************************)
+
+(*
+  ViolatedVertices: the set of vertices whose DCBs are considered violated by
+  WizardMerge. The paper's algorithm also marks:
+
+    - v, u, Mi(v), Mi(u) whenever an edge (v, u) is in a violated scenario, and
+    - all conflict vertices as violated, regardless of edge classification.
+
+  We encode that directly.
+*)
+
+ViolatedVertices ==
+  (*
+    Vertices that participate in at least one violated edge, either directly
+    or through their mirror. This matches "mark v, u, Mi(v), Mi(u) as violated".
+  *)
+  { w \in VERTICES :
+      \E e \in ViolatedEdges :
+        LET v == e.from
+            u == e.to
+        IN  (w = v) \/ (w = u) \/ (w = Mirror[v]) \/ (w = Mirror[u])
+  }
+  \cup ConflictSet
+
+(*
+  SafeVertices: vertices that are not violated. This is a useful derived set
+  for reasoning about which DCBs can be safely auto-applied.
+*)
+SafeVertices ==
+  VERTICES \ ViolatedVertices
+
+(***************************************************************************)
+(* "Properly handled" merges                                               *)
+(***************************************************************************)
+
+(*
+  GoodMerge: a merge whose dependency structure is fully consistent and does
+  not contain any violated edges. In such a configuration, WizardMerge would
+  detect no violated DCBs beyond conflicts (which we treat as violations to
+  be resolved manually).
+*)
+GoodMerge ==
+  ViolatedEdges = {}
+
+(*
+  Stronger variant: in a good merge, no applied vertex depends (transitively)
+  on a violated or non-applied unmatched definition. This is not enforced as
+  an invariant here, but can be used as a property to check on concrete
+  instances.
+*)
+
+(***************************************************************************)
+(* Trivial temporal structure for TLC                                      *)
+(***************************************************************************)
+
+(*
+  We model a single-shot computation: there is no dynamic evolution of the
+  graph in this abstraction. All relevant structure is encoded in CONSTANTS,
+  and all operators above are purely definitional.
+
+  To allow TLC to run, we introduce a dummy state variable and a trivial
+  transition relation. In practice, you instantiate the CONSTANTS via a
+  config file, and then check invariants like EdgePartitionInvariant,
+  GoodMerge, and properties over ViolatedVertices/SafeVertices.
+*)
+
+VARIABLE dummy
+
+Init ==
+  TRUE
+
+Next ==
+  UNCHANGED dummy
+
+Spec ==
+  Init /\ [][Next]_<<dummy>>
+
+(***************************************************************************)
+(* Example invariants to be checked by TLC                                 *)
+(***************************************************************************)
+
+Inv ==
+  EdgePartitionInvariant
+
+THEOREM Spec => []Inv
+
+=============================================================================
