@@ -2,6 +2,34 @@
 EXTENDS Naturals, FiniteSets
 
 (*
+  Implementation Status (as of December 2024):
+  
+  This formal specification describes the dependency-aware merge algorithm that
+  WizardMerge aims to implement. The current implementation status is:
+  
+  IMPLEMENTED (Phase 1.1):
+  - Basic three-way merge algorithm (C++ backend)
+  - Line-level conflict detection
+  - Auto-resolution for common patterns:
+    * Non-overlapping changes
+    * Identical changes from both sides
+    * Whitespace-only differences
+  - Command-line interface (wizardmerge-cli)
+  
+  NOT YET IMPLEMENTED (Future phases):
+  - Dependency graph construction (SDG analysis)
+  - LLVM-IR level analysis
+  - Edge classification (safe vs. violated)
+  - Fine-grained DCB (Definition-Code Block) tracking
+  - Mirror mapping and matching
+  
+  The current implementation in backend/src/merge/three_way_merge.cpp provides
+  a foundation for the full dependency-aware algorithm specified here. Future
+  phases will enhance it with the SDG analysis, edge classification, and
+  dependency-aware conflict resolution described in this specification.
+*)
+
+(*
   High-level intent
 
   This module formalizes the core of WizardMerge's merge-handling logic at the
