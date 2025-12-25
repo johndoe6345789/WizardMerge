@@ -1,5 +1,16 @@
 # WizardMerge Roadmap
 
+## Research Foundation
+
+WizardMerge is based on research from The University of Hong Kong. The complete research paper has been extracted via OCR and is available in [`docs/PAPER.md`](docs/PAPER.md).
+
+**Key Research Insights:**
+- Traditional Git merging uses textual-based strategies that ignore syntax and semantics
+- WizardMerge achieves 28.85% reduction in conflict resolution time
+- Provides merge suggestions for over 70% of code blocks affected by conflicts
+- Uses code block dependency analysis at text and LLVM-IR levels
+- Tested on 227 conflicts across five large-scale projects
+
 ## Vision
 
 WizardMerge aims to become the most intuitive and powerful tool for resolving merge conflicts in software development. By combining intelligent algorithms with a clean, accessible UI, we want to make merge conflict resolution from a dreaded task into a smooth, understandable process.
@@ -118,7 +129,21 @@ WizardMerge aims to become the most intuitive and powerful tool for resolving me
 
 **Deliverable**: `wizardmerge/lsp/` integration module
 
-### 2.4 Collaboration Features
+### 2.4 Multi-Frontend Architecture
+**Priority: HIGH**
+
+- [ ] Abstract core merge engine from UI layer
+- [ ] Define clean API between frontend and backend
+- [ ] C++ backend implementation for performance-critical operations
+- [ ] C++/Qt6 native desktop frontend
+- [ ] Next.js WebUI frontend for browser-based access
+- [ ] Shared state management across frontends
+- [ ] RESTful or gRPC API for frontend-backend communication
+- [ ] WebSocket support for real-time updates
+
+**Deliverable**: `wizardmerge/core/` (backend abstraction), `frontends/qt6/` (C++/Qt6), `frontends/web/` (Next.js)
+
+### 2.5 Collaboration Features
 **Priority: LOW**
 
 - [ ] Add comments to conflicts
@@ -129,11 +154,11 @@ WizardMerge aims to become the most intuitive and powerful tool for resolving me
 
 **Deliverable**: Collaboration UI and sharing infrastructure
 
-### 2.5 Testing & Quality
+### 2.6 Testing & Quality
 **Priority: HIGH**
 
 - [ ] Comprehensive test suite for merge algorithms
-- [ ] UI automation tests
+- [ ] UI automation tests for all frontends
 - [ ] Performance benchmarks for large files
 - [ ] Fuzzing for edge cases
 - [ ] Documentation and examples
@@ -208,33 +233,79 @@ WizardMerge aims to become the most intuitive and powerful tool for resolving me
 - **Themes**: Plugin-based theming system
 - **Algorithms**: Custom merge utilities
 
+### Multi-Frontend Architecture (Proposed)
+
+**Core Philosophy**: Separate merge logic from presentation layer to support multiple frontend options while maintaining a single, robust backend.
+
+#### Backend (C++)
+- **Core Engine**: High-performance merge algorithms in C++
+- **Rationale**: Performance-critical operations (large file parsing, AST analysis, diff computation)
+- **API Layer**: RESTful/gRPC interface for frontend communication
+- **Components**:
+  - Three-way merge engine
+  - Conflict detection and resolution
+  - Git integration layer
+  - File I/O and parsing
+  - Semantic analysis engine
+
+#### Frontend Options
+
+1. **Qt6 Native (C++)**
+   - **Target**: Desktop users (Linux, Windows, macOS)
+   - **Advantages**: Native performance, full desktop integration, offline capability
+   - **Components**: Qt6 Widgets/QML UI, direct C++ backend integration
+   - **Distribution**: Standalone binaries
+
+2. **Next.js WebUI (TypeScript/React)**
+   - **Target**: Browser-based access, cross-platform, team collaboration
+   - **Advantages**: No installation, universal access, easy updates, collaborative features
+   - **Components**: React UI components, REST/WebSocket API client
+   - **Distribution**: Self-hosted or cloud service
+
+3. **PyQt6 (Legacy/Reference)**
+   - **Status**: Current implementation, to be maintained as reference
+   - **Purpose**: Rapid prototyping, Python-centric workflows
+   - **Future**: May be deprecated in favor of Qt6 C++ version
+
 ### Proposed Additions
 - **Diff Library**: `diff-match-patch` or `difflib` enhancements
-- **Git Integration**: `GitPython` or `pygit2`
-- **Syntax Highlighting**: `Pygments` or QML SyntaxHighlighter
-- **AST Parsing**: Language-specific parsers (`ast`, `esprima`, `tree-sitter`)
-- **LSP**: `python-lsp-server` integration
-- **Testing**: `pytest`, `pytest-qt`
+- **Git Integration**: `libgit2` (C++) or `GitPython` (Python fallback)
+- **Syntax Highlighting**: `Pygments` (Python), `highlight.js` (Web), Qt SyntaxHighlighter (Qt6)
+- **AST Parsing**: `tree-sitter` (C++ bindings), Language-specific parsers
+- **LSP**: Language Server Protocol integration for all frontends
+- **Testing**: `pytest` (Python), `gtest` (C++), `Jest` (TypeScript)
 - **ML (future)**: `scikit-learn` or lightweight transformers
+- **API Framework**: `FastAPI` (Python) or `Crow` (C++) for backend API
+- **WebSockets**: `socket.io` for real-time updates in WebUI
 
 ### Architecture Decisions
 
-1. **Separation of Concerns**
-   - Keep merge algorithms pure and testable
-   - UI communicates via well-defined Python API
-   - Git operations isolated in dedicated module
+1. **Multi-Frontend Abstraction**
+   - **Backend Core**: C++ for performance-critical merge operations
+   - **API Layer**: Clean RESTful/gRPC interface between frontend and backend
+   - **Frontend Choice**: Qt6 C++ for native desktop, Next.js for web/collaboration
+   - **Rationale**: Users choose their preferred interface while sharing the same robust engine
 
-2. **Performance First**
+2. **Separation of Concerns**
+   - Keep merge algorithms pure and testable
+   - UI communicates via well-defined API
+   - Git operations isolated in dedicated module
+   - Each frontend can evolve independently
+
+3. **Performance First**
+   - C++ backend for computationally expensive operations
    - Lazy loading for large files
    - Background threads for expensive operations
    - Incremental updates to UI
+   - WebSocket for real-time web updates
 
-3. **Extensibility**
+4. **Extensibility**
    - Plugin system for merge strategies
-   - Theme system already in place
+   - Theme system for all frontends
    - Configuration file support
+   - API versioning for backward compatibility
 
-4. **Safety**
+5. **Safety**
    - Never modify original files until confirmed
    - Auto-save drafts
    - Full undo history
