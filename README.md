@@ -16,6 +16,14 @@ can extend the UI palette without touching the core code.
 - Simple merge algorithm utilities in `wizardmerge.algo`
 - Helper scripts for environment setup and running the app
 
+## Roadmap
+See [ROADMAP.md](ROADMAP.md) for our vision and development plan to make resolving merge conflicts easier. The roadmap covers:
+- Enhanced merge algorithms (three-way merge, conflict detection)
+- Smart semantic merging for different file types
+- Advanced visualization and UI improvements
+- Git workflow integration
+- AI-assisted conflict resolution
+
 ## Getting Started
 1. Create a virtual environment and install dependencies:
    ```sh
