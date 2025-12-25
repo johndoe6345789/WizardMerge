@@ -7,7 +7,7 @@ Next.js-based web frontend for WizardMerge.
 - **Package Manager**: bun
 - **Framework**: Next.js 14
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS (planned)
+- **Styling**: Plain CSS (Tailwind CSS planned for future)
 
 ## Setup
 
