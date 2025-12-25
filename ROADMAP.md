@@ -30,16 +30,16 @@ WizardMerge aims to become the most intuitive and powerful tool for resolving me
 ### 1.1 Enhanced Merge Algorithm
 **Priority: HIGH**
 
-- [ ] Implement three-way merge algorithm (base, ours, theirs)
-- [ ] Add conflict detection and marking
+- [x] Implement three-way merge algorithm (base, ours, theirs)
+- [x] Add conflict detection and marking
 - [ ] Support for different conflict markers (Git, Mercurial, etc.)
 - [ ] Line-level granularity with word-level highlighting
-- [ ] Handle common auto-resolvable patterns:
+- [x] Handle common auto-resolvable patterns:
   - Non-overlapping changes
   - Identical changes from both sides
   - Whitespace-only differences
 
-**Deliverable**: `wizardmerge/algo/three_way_merge.py` module
+**Deliverable**: `backend/src/merge/three_way_merge.cpp` module ✓
 
 ### 1.2 File Input/Output
 **Priority: HIGH**
