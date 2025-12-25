@@ -1,0 +1,2 @@
+/usr/bin/ar qc libwizardmerge.a CMakeFiles/wizardmerge.dir/src/merge/three_way_merge.cpp.o
+/usr/bin/ranlib libwizardmerge.a
