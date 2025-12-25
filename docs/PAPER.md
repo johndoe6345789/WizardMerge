@@ -1,5 +1,8 @@
 # WizardMerge Research Paper
-*Extracted via OCR from paper pages*
+
+*Extracted via OCR from paper pages in `docs/pages/`*
+
+**Note**: This document contains OCR-extracted text which may have some errors. The original page images are preserved in `docs/pages/` for reference. For critical information, please refer to the original images or the published paper.
 
 ---
 

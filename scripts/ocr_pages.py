@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Extract text from page images using OCR and save as a markdown document."""
+"""Extract text from page images using OCR and save as a markdown document.
+
+Dependencies:
+    pip install pillow pytesseract
+    
+System requirements:
+    tesseract-ocr (install via: sudo apt-get install tesseract-ocr)
+"""
 
 from pathlib import Path
 import pytesseract
@@ -13,10 +20,14 @@ def ocr_pages(pages_dir: Path, output_file: Path) -> None:
         raise FileNotFoundError(f"Pages directory not found: {pages_dir}")
     
     # Get all PNG files sorted by number
-    image_files = sorted(
-        pages_dir.glob("*.png"),
-        key=lambda p: int(p.stem.split("_")[-1])
-    )
+    def get_page_number(path: Path) -> int:
+        """Extract page number from filename, defaulting to 0 if not found."""
+        try:
+            return int(path.stem.split("_")[-1])
+        except (ValueError, IndexError):
+            return 0
+    
+    image_files = sorted(pages_dir.glob("*.png"), key=get_page_number)
     
     if not image_files:
         raise ValueError(f"No PNG files found in {pages_dir}")
