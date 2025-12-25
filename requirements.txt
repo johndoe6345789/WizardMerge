@@ -1,1 +1,7 @@
 PyQt6>=6.6
+
+# Optional: OCR dependencies for extracting text from documents
+# Uncomment if you need to run scripts/ocr_pages.py
+# pillow>=10.0
+# pytesseract>=0.3.10
+# System requirement: tesseract-ocr (install via: sudo apt-get install tesseract-ocr)
