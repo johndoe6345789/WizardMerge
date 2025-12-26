@@ -79,8 +79,9 @@ void MergeController::merge(
     Json::Value conflictsArray(Json::arrayValue);
     for (const auto &conflict : result.conflicts) {
         Json::Value conflictObj;
-        conflictObj["start_line"] = Json::Value::UInt64(conflict.start_line);
-        conflictObj["end_line"] = Json::Value::UInt64(conflict.end_line);
+        // Note: start_line and end_line are size_t (always non-negative)
+        conflictObj["start_line"] = static_cast<Json::UInt64>(conflict.start_line);
+        conflictObj["end_line"] = static_cast<Json::UInt64>(conflict.end_line);
         
         Json::Value baseLines(Json::arrayValue);
         for (const auto &line : conflict.base_lines) {

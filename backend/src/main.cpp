@@ -24,8 +24,19 @@ int main(int argc, char* argv[]) {
         // Load configuration and start server
         app().loadConfigFile(config_file);
         
-        std::cout << "Server will listen on port " 
-                  << app().getListeners()[0].toPort << "\n";
+        // Display listener information if available
+        auto listeners = app().getListeners();
+        if (!listeners.empty()) {
+            try {
+                std::cout << "Server will listen on port " 
+                          << listeners[0].toPort << "\n";
+            } catch (...) {
+                std::cout << "Server listener configured\n";
+            }
+        } else {
+            std::cout << "Server configuration loaded\n";
+        }
+        
         std::cout << "Available endpoints:\n";
         std::cout << "  POST /api/merge - Three-way merge API\n";
         std::cout << "\nPress Ctrl+C to stop the server.\n\n";
