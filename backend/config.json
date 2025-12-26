@@ -1,0 +1,43 @@
+{
+  "app": {
+    "threads_num": 4,
+    "enable_session": false,
+    "session_timeout": 0,
+    "document_root": "",
+    "upload_path": "./uploads",
+    "file_types": [
+      "json"
+    ],
+    "max_connections": 100000,
+    "max_connections_per_ip": 0,
+    "load_libs": [],
+    "log": {
+      "log_path": "./logs",
+      "logfile_base_name": "wizardmerge",
+      "log_size_limit": 100000000,
+      "log_level": "INFO"
+    },
+    "run_as_daemon": false,
+    "relaunch_on_error": false,
+    "use_sendfile": true,
+    "use_gzip": true,
+    "use_brotli": false,
+    "static_files_cache_time": 0,
+    "simple_controllers_map": [],
+    "idle_connection_timeout": 60,
+    "server_header_field": "WizardMerge/0.1.0",
+    "enable_server_header": true,
+    "keepalive_requests": 0,
+    "pipelining_requests": 0,
+    "client_max_body_size": "10M",
+    "client_max_memory_body_size": "10M",
+    "client_max_websocket_message_size": "128K"
+  },
+  "listeners": [
+    {
+      "address": "0.0.0.0",
+      "port": 8080,
+      "https": false
+    }
+  ]
+}

@@ -18,7 +18,7 @@ class WizardMergeConan(ConanFile):
     exports_sources = "CMakeLists.txt", "src/*", "include/*"
     
     # Dependencies
-    requires = []
+    requires = ["drogon/1.9.3"]
     
     generators = "CMakeDeps", "CMakeToolchain"
     

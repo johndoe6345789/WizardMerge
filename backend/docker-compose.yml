@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  wizardmerge-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/build/logs
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=INFO

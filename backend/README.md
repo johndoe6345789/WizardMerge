@@ -1,6 +1,6 @@
 # WizardMerge C++ Backend
 
-This is the C++ backend for WizardMerge implementing the core merge algorithms.
+This is the C++ backend for WizardMerge implementing the core merge algorithms with a Drogon-based HTTP API.
 
 ## Build System
 
@@ -8,36 +8,85 @@ This is the C++ backend for WizardMerge implementing the core merge algorithms.
 - **Package Manager**: Conan
 - **CMake**: Version 3.15+
 - **C++ Standard**: C++17
+- **Web Framework**: Drogon
 
 ## Building
 
 ### Prerequisites
 
+**Required:**
+- C++17 compiler (GCC 7+, Clang 6+, MSVC 2017+)
+- CMake 3.15+
+- Ninja build tool
+
+**For HTTP Server:**
+- Drogon framework (see installation methods below)
+
+### Installation Methods
+
+#### Method 1: Using Installer Script (Recommended)
+
+```sh
+# Install Drogon from source
+./install_drogon.sh
+
+# Build WizardMerge
+./build.sh
+```
+
+#### Method 2: Using Docker (Easiest)
+
+```sh
+# Build and run with Docker Compose
+docker-compose up --build
+
+# Or use Docker directly
+docker build -t wizardmerge-backend .
+docker run -p 8080:8080 wizardmerge-backend
+```
+
+#### Method 3: Using Conan
+
 ```sh
 # Install Conan
 pip install conan
 
-# Install CMake and Ninja
-# On Ubuntu/Debian:
-sudo apt-get install cmake ninja-build
+# Build with Conan
+./build.sh
+```
 
-# On macOS:
-brew install cmake ninja
+Note: Conan requires internet access to download Drogon.
+
+#### Method 4: Manual CMake Build
+
+If you have Drogon already installed system-wide:
+
+```sh
+mkdir build && cd build
+cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
+ninja
 ```
 
 ### Build Steps
 
+The build script automatically handles dependencies and provides multiple build options:
+
 ```sh
-# Configure with Conan
-conan install . --output-folder=build --build=missing
+# Automatic build (tries Conan, falls back to direct CMake)
+./build.sh
+```
 
-# Build with CMake and Ninja
-cd build
-cmake .. -G Ninja -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
+If Drogon is not found, the library will still build but the HTTP server will be skipped.
+
+### Running Without Drogon
+
+If you only need the merge library (not the HTTP server):
+
+```sh
+mkdir build && cd build
+cmake .. -G Ninja
 ninja
-
-# Run the executable
-./wizardmerge-cli base.txt ours.txt theirs.txt output.txt
+# This builds libwizardmerge.a which can be linked into other applications
 ```
 
 ## Testing
@@ -53,12 +102,16 @@ ninja test
 backend/
 ├── CMakeLists.txt       # CMake build configuration
 ├── conanfile.py         # Conan package definition
+├── config.json          # Drogon server configuration
 ├── include/             # Public headers
 │   └── wizardmerge/
 │       └── merge/
 │           └── three_way_merge.h
 ├── src/                 # Implementation files
 │   ├── main.cpp
+│   ├── controllers/
+│   │   ├── MergeController.h
+│   │   └── MergeController.cc
 │   └── merge/
 │       └── three_way_merge.cpp
 └── tests/               # Unit tests
@@ -69,16 +122,114 @@ backend/
 - Three-way merge algorithm (Phase 1.1 from ROADMAP)
 - Conflict detection and marking
 - Auto-resolution of common patterns
-- Command-line interface
+- HTTP API server using Drogon framework
+- JSON-based request/response
 
-## Usage
+## API Usage
+
+### Start the server
 
 ```sh
-wizardmerge-cli <base> <ours> <theirs> <output>
+./wizardmerge-cli [config.json]
 ```
 
-Arguments:
-- `base`: Common ancestor version
-- `ours`: Current branch version
-- `theirs`: Branch being merged
-- `output`: Output file for merged result
+The server will start on port 8080 by default (configurable in config.json).
+
+### POST /api/merge
+
+Perform a three-way merge operation.
+
+**Request:**
+```json
+{
+  "base": ["line1", "line2", "line3"],
+  "ours": ["line1", "line2_modified", "line3"],
+  "theirs": ["line1", "line2", "line3_modified"]
+}
+```
+
+**Response:**
+```json
+{
+  "merged": ["line1", "line2_modified", "line3_modified"],
+  "conflicts": [],
+  "has_conflicts": false
+}
+```
+
+**Example with curl:**
+```sh
+curl -X POST http://localhost:8080/api/merge \
+  -H "Content-Type: application/json" \
+  -d '{
+    "base": ["line1", "line2", "line3"],
+    "ours": ["line1", "line2_ours", "line3"],
+    "theirs": ["line1", "line2_theirs", "line3"]
+  }'
+```
+
+## Deployment
+
+### Production Deployment with Docker
+
+The recommended way to deploy in production:
+
+```sh
+# Using Docker Compose
+docker-compose up -d
+
+# Check logs
+docker-compose logs -f
+
+# Stop the server
+docker-compose down
+```
+
+### Configuration
+
+Edit `config.json` to customize server settings:
+
+- `listeners[].port`: Change server port (default: 8080)
+- `app.threads_num`: Number of worker threads (default: 4)
+- `app.log.log_level`: Logging level (DEBUG, INFO, WARN, ERROR)
+- `app.client_max_body_size`: Maximum request body size
+
+### Monitoring
+
+Logs are written to `./logs/` directory by default. Monitor with:
+
+```sh
+tail -f logs/wizardmerge.log
+```
+
+## Development
+
+### Architecture
+
+The backend is now structured as a Drogon HTTP API server:
+
+- **Core Library** (`libwizardmerge.a`): Contains the merge algorithms
+- **HTTP Server** (`wizardmerge-cli`): Drogon-based API server
+- **Controllers** (`src/controllers/`): HTTP request handlers
+- **Configuration** (`config.json`): Server settings
+
+### Adding New Endpoints
+
+1. Create a new controller in `src/controllers/`
+2. Implement the controller methods
+3. Add the controller source to CMakeLists.txt
+4. Rebuild the project
+
+Example controller structure:
+
+```cpp
+class MyController : public HttpController<MyController> {
+  public:
+    METHOD_LIST_BEGIN
+    ADD_METHOD_TO(MyController::myMethod, "/api/mypath", Post);
+    METHOD_LIST_END
+
+    void myMethod(const HttpRequestPtr &req,
+                  std::function<void(const HttpResponsePtr &)> &&callback);
+};
+```
