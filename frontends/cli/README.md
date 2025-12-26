@@ -232,6 +232,22 @@ The CLI frontend is a thin client that:
 3. Sends HTTP requests to backend
 4. Formats and displays results
 
+### Current Limitations
+
+**JSON Handling (Prototype Implementation)**:
+- The current implementation uses simple string-based JSON serialization/parsing
+- Does NOT escape special characters (quotes, backslashes, newlines, etc.)
+- Will fail on file content with complex characters
+- Suitable for simple text files and prototyping only
+
+**Production Readiness**:
+For production use, the JSON handling should be replaced with a proper library:
+- Option 1: [nlohmann/json](https://github.com/nlohmann/json) - Header-only, modern C++
+- Option 2: [RapidJSON](https://github.com/Tencent/rapidjson) - Fast and lightweight
+- Option 3: [jsoncpp](https://github.com/open-source-parsers/jsoncpp) - Mature and stable
+
+See `src/http_client.cpp` for TODO comments marking areas needing improvement.
+
 ### Dependencies
 
 - Standard C++ library

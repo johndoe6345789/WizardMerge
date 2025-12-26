@@ -53,23 +53,27 @@ bool HttpClient::performMerge(
     bool& hasConflicts
 ) {
     // Build JSON request
+    // NOTE: This is a simplified JSON builder for prototype purposes.
+    // LIMITATION: Does not escape special characters in strings (quotes, backslashes, etc.)
+    // TODO: For production, use a proper JSON library like nlohmann/json or rapidjson
+    // This implementation works for simple test cases but will fail with complex content.
     std::ostringstream json;
     json << "{";
     json << "\"base\":[";
     for (size_t i = 0; i < base.size(); ++i) {
-        json << "\"" << base[i] << "\"";
+        json << "\"" << base[i] << "\"";  // WARNING: No escaping!
         if (i < base.size() - 1) json << ",";
     }
     json << "],";
     json << "\"ours\":[";
     for (size_t i = 0; i < ours.size(); ++i) {
-        json << "\"" << ours[i] << "\"";
+        json << "\"" << ours[i] << "\"";  // WARNING: No escaping!
         if (i < ours.size() - 1) json << ",";
     }
     json << "],";
     json << "\"theirs\":[";
     for (size_t i = 0; i < theirs.size(); ++i) {
-        json << "\"" << theirs[i] << "\"";
+        json << "\"" << theirs[i] << "\"";  // WARNING: No escaping!
         if (i < theirs.size() - 1) json << ",";
     }
     json << "]";
@@ -81,12 +85,14 @@ bool HttpClient::performMerge(
     }
 
     // Parse JSON response (simple parsing for now)
-    // In a production system, use a proper JSON library like nlohmann/json
+    // NOTE: This is a fragile string-based parser for prototype purposes.
+    // LIMITATION: Will break on complex JSON or unexpected formatting.
+    // TODO: For production, use a proper JSON library like nlohmann/json or rapidjson
     merged.clear();
     hasConflicts = (response.find("\"has_conflicts\":true") != std::string::npos);
 
     // Extract merged lines from response
-    // This is a simplified parser - production code should use a JSON library
+    // This is a simplified parser - production code MUST use a JSON library
     size_t mergedPos = response.find("\"merged\":");
     if (mergedPos != std::string::npos) {
         size_t startBracket = response.find("[", mergedPos);
