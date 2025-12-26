@@ -9,7 +9,10 @@ WizardMerge uses a multi-component architecture:
 ```
 WizardMerge/
 ├── backend/          # C++ core merge engine (Conan + Ninja)
-├── frontend/         # Next.js web UI (bun)
+├── frontends/        # Multiple frontend options
+│   ├── qt6/          # Qt6 native desktop (C++)
+│   ├── nextjs/       # Next.js web UI (TypeScript/bun)
+│   └── cli/          # Command-line interface (C++)
 ├── spec/             # TLA+ formal specification
 ├── docs/             # Research paper and documentation
 └── ROADMAP.md        # Development roadmap
@@ -51,7 +54,7 @@ The frontend provides a web-based UI for conflict resolution.
 
 **Setup:**
 ```bash
-cd frontend
+cd frontends/nextjs
 bun install
 ```
 
@@ -62,16 +65,66 @@ bun run dev
 
 Visit http://localhost:3000
 
-See [frontend/README.md](frontend/README.md) for details.
+See [frontends/nextjs/README.md](frontends/nextjs/README.md) for details.
+
+### Qt6 Desktop Frontend
+
+The Qt6 frontend provides a native desktop application.
+
+**Prerequisites:**
+- Qt6 (6.2+)
+- CMake 3.16+
+- C++17 compiler
+
+**Setup:**
+```bash
+cd frontends/qt6
+mkdir build && cd build
+cmake .. -G Ninja
+ninja
+```
+
+**Run:**
+```bash
+./wizardmerge-qt6
+```
+
+See [frontends/qt6/README.md](frontends/qt6/README.md) for details.
+
+### CLI Frontend
+
+The CLI frontend provides a command-line interface.
+
+**Prerequisites:**
+- C++17 compiler
+- CMake 3.15+
+- libcurl
+
+**Setup:**
+```bash
+cd frontends/cli
+mkdir build && cd build
+cmake .. -G Ninja
+ninja
+```
+
+**Run:**
+```bash
+./wizardmerge-cli-frontend --help
+```
+
+See [frontends/cli/README.md](frontends/cli/README.md) for details.
 
 ## Development Workflow
 
 ### Making Changes
 
 1. **Backend (C++)**: Edit files in `backend/src/` and `backend/include/`
-2. **Frontend (TypeScript)**: Edit files in `frontend/app/`
-3. **Tests**: Add tests in `backend/tests/` for C++ changes
-4. **Documentation**: Update relevant README files
+2. **Qt6 Frontend (C++)**: Edit files in `frontends/qt6/src/` and `frontends/qt6/qml/`
+3. **Next.js Frontend (TypeScript)**: Edit files in `frontends/nextjs/app/`
+4. **CLI Frontend (C++)**: Edit files in `frontends/cli/src/`
+5. **Tests**: Add tests in `backend/tests/` for C++ changes
+6. **Documentation**: Update relevant README files
 
 ### Building
 
@@ -79,8 +132,14 @@ See [frontend/README.md](frontend/README.md) for details.
 # C++ backend
 cd backend && ./build.sh
 
-# TypeScript frontend
-cd frontend && bun run build
+# Qt6 desktop frontend
+cd frontends/qt6 && mkdir build && cd build && cmake .. -G Ninja && ninja
+
+# Next.js web frontend
+cd frontends/nextjs && bun run build
+
+# CLI frontend
+cd frontends/cli && mkdir build && cd build && cmake .. -G Ninja && ninja
 ```
 
 ### Testing
@@ -89,8 +148,8 @@ cd frontend && bun run build
 # C++ backend tests (requires GTest)
 cd backend/build && ninja test
 
-# TypeScript frontend tests
-cd frontend && bun test
+# Next.js frontend tests
+cd frontends/nextjs && bun test
 ```
 
 ## Project Standards
