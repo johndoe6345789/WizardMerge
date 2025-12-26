@@ -210,3 +210,29 @@ __marimo__/
 extracted_graphics/*.png
 extracted_graphics/*.jpg
 extracted_graphics/*.jpeg
+
+# C++ build artifacts
+backend/build/
+backend/_codeql_build_dir/
+backend/CMakeCache.txt
+backend/CMakeFiles/
+backend/cmake_install.cmake
+backend/Makefile
+backend/*.a
+backend/*.so
+backend/*.dylib
+
+# CodeQL
+_codeql_detected_source_root
+
+# Conan
+backend/.conan/
+backend/conan.lock
+
+# Node.js / TypeScript
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/.vercel/
+frontend/bun.lockb
