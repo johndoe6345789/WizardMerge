@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Find dependencies via Conan
-find_package(Drogon CONFIG REQUIRED)
+find_package(Drogon CONFIG QUIET)
 find_package(GTest QUIET)
 
 # Library sources
@@ -21,13 +21,23 @@ target_include_directories(wizardmerge
         $<INSTALL_INTERFACE:include>
 )
 
-# Executable
-add_executable(wizardmerge-cli
-    src/main.cpp
-    src/controllers/MergeController.cc
-)
+# Executable (only if Drogon is found)
+if(Drogon_FOUND)
+    add_executable(wizardmerge-cli
+        src/main.cpp
+        src/controllers/MergeController.cc
+    )
 
-target_link_libraries(wizardmerge-cli PRIVATE wizardmerge Drogon::Drogon)
+    target_link_libraries(wizardmerge-cli PRIVATE wizardmerge Drogon::Drogon)
+    
+    install(TARGETS wizardmerge-cli
+        RUNTIME DESTINATION bin
+    )
+    
+    message(STATUS "Drogon found - building HTTP server")
+else()
+    message(WARNING "Drogon not found - skipping HTTP server build. Install Drogon to build the server.")
+endif()
 
 # Tests (if GTest is available)
 if(GTest_FOUND)
@@ -42,10 +52,9 @@ if(GTest_FOUND)
 endif()
 
 # Install targets
-install(TARGETS wizardmerge wizardmerge-cli
+install(TARGETS wizardmerge
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
 )
 
 install(DIRECTORY include/ DESTINATION include)
