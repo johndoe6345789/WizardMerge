@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Find dependencies via Conan
+find_package(Drogon CONFIG REQUIRED)
 find_package(GTest QUIET)
 
 # Library sources
@@ -23,9 +24,10 @@ target_include_directories(wizardmerge
 # Executable
 add_executable(wizardmerge-cli
     src/main.cpp
+    src/controllers/MergeController.cc
 )
 
-target_link_libraries(wizardmerge-cli PRIVATE wizardmerge)
+target_link_libraries(wizardmerge-cli PRIVATE wizardmerge Drogon::Drogon)
 
 # Tests (if GTest is available)
 if(GTest_FOUND)

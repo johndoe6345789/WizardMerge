@@ -14,7 +14,8 @@ WizardMerge uses a multi-frontend architecture with a high-performance C++ backe
 - **Location**: `backend/`
 - **Build System**: CMake + Ninja
 - **Package Manager**: Conan
-- **Features**: Three-way merge algorithm, conflict detection, auto-resolution
+- **Web Framework**: Drogon
+- **Features**: Three-way merge algorithm, conflict detection, auto-resolution, HTTP API
 
 ### Frontend (TypeScript/Next.js)
 - **Location**: `frontend/`

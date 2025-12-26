@@ -19,7 +19,7 @@ WizardMerge/
 
 ### C++ Backend
 
-The backend implements the core three-way merge algorithm.
+The backend implements the core three-way merge algorithm with an HTTP API server using Drogon.
 
 **Prerequisites:**
 - C++17 compiler (GCC 7+, Clang 6+, MSVC 2017+)
@@ -33,10 +33,12 @@ cd backend
 ./build.sh
 ```
 
-**Usage:**
+**Run the server:**
 ```bash
-./build/wizardmerge-cli base.txt ours.txt theirs.txt output.txt
+./build/wizardmerge-cli
 ```
+
+The HTTP server will start on port 8080. Use the POST /api/merge endpoint to perform merges.
 
 See [backend/README.md](backend/README.md) for details.
 
