@@ -238,11 +238,11 @@ std::vector<std::string> extract_imports(
         // Check for various import patterns
         if (line.find("#include") == 0 ||
             line.find("import ") == 0 ||
+            line.find("import{") == 0 ||  // Support both "import{" and "import {"
             line.find("from ") == 0 ||
             line.find("require(") != std::string::npos ||
             line.find("using ") == 0 ||
             // TypeScript/ES6 specific patterns
-            line.find("import{") == 0 ||
             line.find("import *") == 0 ||
             line.find("import type") == 0 ||
             line.find("export {") == 0 ||

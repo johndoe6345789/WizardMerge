@@ -163,8 +163,8 @@ bool has_typescript_interface_changes(
     const std::vector<std::string>& base,
     const std::vector<std::string>& modified
 ) {
-    // Check for interface, type, or enum changes
-    std::vector<std::regex> ts_definition_patterns = {
+    // Use static regex patterns to avoid recompilation
+    static const std::vector<std::regex> ts_definition_patterns = {
         std::regex(R"(\binterface\s+\w+)"),
         std::regex(R"(\btype\s+\w+\s*=)"),
         std::regex(R"(\benum\s+\w+)"),
@@ -202,8 +202,11 @@ bool has_typescript_interface_changes(
         if (base.size() != modified.size()) {
             return true;
         }
+        // Cache trimmed lines to avoid repeated trim() calls
         for (size_t i = 0; i < base.size(); ++i) {
-            if (trim(base[i]) != trim(modified[i])) {
+            std::string base_trimmed = trim(base[i]);
+            std::string mod_trimmed = trim(modified[i]);
+            if (base_trimmed != mod_trimmed) {
                 return true;
             }
         }
