@@ -15,11 +15,12 @@ EXTENDS Naturals, FiniteSets
     * Identical changes from both sides
     * Whitespace-only differences
   - Command-line interface (wizardmerge-cli)
-  - Pull request URL processing and conflict resolution:
-    * Parse GitHub PR URLs
-    * Fetch PR data via GitHub API
-    * Apply merge algorithm to PR files
-    * HTTP API endpoint for PR resolution
+  - Pull request/merge request URL processing and conflict resolution:
+    * Parse GitHub PR URLs and GitLab MR URLs
+    * Fetch PR/MR data via GitHub and GitLab APIs
+    * Apply merge algorithm to PR/MR files
+    * HTTP API endpoint for PR/MR resolution
+    * Support for multiple git platforms (GitHub and GitLab)
   
   NOT YET IMPLEMENTED (Future phases):
   - Dependency graph construction (SDG analysis)
@@ -27,26 +28,32 @@ EXTENDS Naturals, FiniteSets
   - Edge classification (safe vs. violated)
   - Fine-grained DCB (Definition-Code Block) tracking
   - Mirror mapping and matching
-  - Git branch creation for resolved PRs
+  - Git branch creation for resolved PRs/MRs
+  - Support for additional platforms (Bitbucket, etc.)
   
   The current implementation in backend/src/merge/three_way_merge.cpp provides
   a foundation for the full dependency-aware algorithm specified here. Future
   phases will enhance it with the SDG analysis, edge classification, and
   dependency-aware conflict resolution described in this specification.
   
-  PR Resolution Workflow (Phase 1.2):
-  The PR resolution feature extends the core merge algorithm to work with
-  GitHub pull requests. The workflow is:
-    1. Accept PR URL: Parse URL to extract owner, repo, and PR number
-    2. Fetch PR metadata: Use GitHub API to retrieve PR information
+  PR/MR Resolution Workflow (Phase 1.2):
+  The PR/MR resolution feature extends the core merge algorithm to work with
+  both GitHub pull requests and GitLab merge requests. The workflow is:
+    1. Accept PR/MR URL: Parse URL to detect platform and extract owner, repo, and number
+    2. Fetch PR/MR metadata: Use platform-specific API to retrieve information
     3. Fetch file versions: Retrieve base and head versions of modified files
     4. Apply merge algorithm: For each file, perform three-way merge
     5. Auto-resolve conflicts: Apply heuristic resolution where possible
     6. Return results: Provide merged content and conflict status
   
-  This workflow enables batch processing of PR conflicts using the same
+  Platform Support:
+    - GitHub: Uses GitHub API v3 with "Authorization: token" header
+    - GitLab: Uses GitLab API v4 with "PRIVATE-TOKEN" header
+    - Both platforms support public and private repositories with proper authentication
+  
+  This workflow enables batch processing of PR/MR conflicts using the same
   dependency-aware merge principles, with future integration planned for
-  automatic branch creation and PR updates.
+  automatic branch creation and PR/MR updates.
 *)
 
 (*
@@ -337,31 +344,45 @@ Inv ==
 THEOREM Spec => []Inv
 
 (***************************************************************************)
-(* Pull Request Resolution Specification (Phase 1.2)                      *)
+(* Pull Request/Merge Request Resolution Specification (Phase 1.2)        *)
 (***************************************************************************)
 
 (*
-  This section extends the core merge specification to model the PR resolution
-  workflow. It describes how WizardMerge processes GitHub pull requests to
-  identify and resolve conflicts across multiple files.
+  This section extends the core merge specification to model the PR/MR resolution
+  workflow. It describes how WizardMerge processes GitHub pull requests and
+  GitLab merge requests to identify and resolve conflicts across multiple files.
+  
+  Supported Platforms:
+    - GitHub: Uses "pull request" terminology with "/pull/" URL path
+    - GitLab: Uses "merge request" terminology with "/-/merge_requests/" URL path
 *)
 
 CONSTANTS
   (*
-    PR_FILES: the set of all files in the pull request
+    GitPlatform: the platform type - GitHub or GitLab
+  *)
+  GitPlatform,
+  
+  (*
+    PR_FILES: the set of all files in the pull/merge request
   *)
   PR_FILES,
   
   (*
-    FileStatus: maps each file to its modification status in the PR
+    FileStatus: maps each file to its modification status in the PR/MR
     Possible values: "modified", "added", "removed", "renamed"
   *)
   FileStatus,
   
   (*
-    BaseSHA, HeadSHA: commit identifiers for base and head of the PR
+    BaseSHA, HeadSHA: commit identifiers for base and head of the PR/MR
   *)
   BaseSHA, HeadSHA
+
+(*
+  Platform types - GitHub uses pull requests, GitLab uses merge requests
+*)
+ASSUME GitPlatform \in {"GitHub", "GitLab"}
 
 (*
   A file is resolvable if it was modified (not removed) and we can fetch

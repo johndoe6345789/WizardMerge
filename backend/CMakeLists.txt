@@ -18,10 +18,10 @@ set(WIZARDMERGE_SOURCES
 
 # Add git sources only if CURL is available
 if(CURL_FOUND)
-    list(APPEND WIZARDMERGE_SOURCES src/git/github_client.cpp)
-    message(STATUS "CURL found - including GitHub API client")
+    list(APPEND WIZARDMERGE_SOURCES src/git/git_platform_client.cpp)
+    message(STATUS "CURL found - including Git platform API client (GitHub & GitLab)")
 else()
-    message(WARNING "CURL not found - GitHub API features will be unavailable")
+    message(WARNING "CURL not found - Git platform API features will be unavailable")
 endif()
 
 add_library(wizardmerge ${WIZARDMERGE_SOURCES})
@@ -71,7 +71,7 @@ if(GTest_FOUND)
     
     # Add github client tests only if CURL is available
     if(CURL_FOUND)
-        list(APPEND TEST_SOURCES tests/test_github_client.cpp)
+        list(APPEND TEST_SOURCES tests/test_git_platform_client.cpp)
     endif()
     
     add_executable(wizardmerge-tests ${TEST_SOURCES})

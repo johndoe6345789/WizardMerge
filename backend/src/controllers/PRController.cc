@@ -4,7 +4,7 @@
  */
 
 #include "PRController.h"
-#include "wizardmerge/git/github_client.h"
+#include "wizardmerge/git/git_platform_client.h"
 #include "wizardmerge/merge/three_way_merge.h"
 #include <json/json.h>
 #include <iostream>
@@ -41,30 +41,33 @@ void PRController::resolvePR(
     }
 
     std::string pr_url = json["pr_url"].asString();
-    std::string github_token = json.get("github_token", "").asString();
+    std::string api_token = json.get("api_token", json.get("github_token", "").asString()).asString();
     bool create_branch = json.get("create_branch", false).asBool();
     std::string branch_name = json.get("branch_name", "").asString();
 
-    // Parse PR URL
+    // Parse PR/MR URL
+    GitPlatform platform;
     std::string owner, repo;
     int pr_number;
     
-    if (!parse_pr_url(pr_url, owner, repo, pr_number)) {
+    if (!parse_pr_url(pr_url, platform, owner, repo, pr_number)) {
         Json::Value error;
-        error["error"] = "Invalid pull request URL format";
+        error["error"] = "Invalid pull/merge request URL format";
         error["pr_url"] = pr_url;
+        error["note"] = "Supported platforms: GitHub (pull requests) and GitLab (merge requests)";
         auto resp = HttpResponse::newHttpJsonResponse(error);
         resp->setStatusCode(k400BadRequest);
         callback(resp);
         return;
     }
 
-    // Fetch pull request information
-    auto pr_opt = fetch_pull_request(owner, repo, pr_number, github_token);
+    // Fetch pull/merge request information
+    auto pr_opt = fetch_pull_request(platform, owner, repo, pr_number, api_token);
     
     if (!pr_opt) {
         Json::Value error;
-        error["error"] = "Failed to fetch pull request information";
+        error["error"] = "Failed to fetch pull/merge request information";
+        error["platform"] = (platform == GitPlatform::GitHub) ? "GitHub" : "GitLab";
         error["owner"] = owner;
         error["repo"] = repo;
         error["pr_number"] = pr_number;
@@ -102,7 +105,7 @@ void PRController::resolvePR(
             // Fetch base version (empty for added files)
             std::vector<std::string> base_content;
             if (file.status == "modified") {
-                auto base_opt = fetch_file_content(owner, repo, pr.base_sha, file.filename, github_token);
+                auto base_opt = fetch_file_content(platform, owner, repo, pr.base_sha, file.filename, api_token);
                 if (!base_opt) {
                     file_result["error"] = "Failed to fetch base version";
                     file_result["had_conflicts"] = false;
@@ -114,7 +117,7 @@ void PRController::resolvePR(
             }
 
             // Fetch head version
-            auto head_opt = fetch_file_content(owner, repo, pr.head_sha, file.filename, github_token);
+            auto head_opt = fetch_file_content(platform, owner, repo, pr.head_sha, file.filename, api_token);
             if (!head_opt) {
                 file_result["error"] = "Failed to fetch head version";
                 file_result["had_conflicts"] = false;
@@ -160,6 +163,7 @@ void PRController::resolvePR(
     response["success"] = true;
     
     Json::Value pr_info;
+    pr_info["platform"] = (pr.platform == GitPlatform::GitHub) ? "GitHub" : "GitLab";
     pr_info["number"] = pr.number;
     pr_info["title"] = pr.title;
     pr_info["state"] = pr.state;

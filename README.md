@@ -101,44 +101,67 @@ ninja
 
 See [frontends/cli/README.md](frontends/cli/README.md) for details.
 
-## Pull Request Conflict Resolution
+## Pull Request / Merge Request Conflict Resolution
 
-WizardMerge can automatically resolve conflicts in GitHub pull requests using advanced merge algorithms.
+WizardMerge can automatically resolve conflicts in GitHub pull requests and GitLab merge requests using advanced merge algorithms.
+
+### Supported Platforms
+
+- **GitHub**: Pull requests via GitHub API
+- **GitLab**: Merge requests via GitLab API
 
 ### Using the CLI
 
 ```sh
-# Resolve conflicts in a pull request
+# Resolve conflicts in a GitHub pull request
 ./wizardmerge-cli-frontend pr-resolve --url https://github.com/owner/repo/pull/123
 
-# With GitHub token for private repos
+# Resolve conflicts in a GitLab merge request
+./wizardmerge-cli-frontend pr-resolve --url https://gitlab.com/owner/repo/-/merge_requests/456
+
+# With API token for private repos
 ./wizardmerge-cli-frontend pr-resolve --url https://github.com/owner/repo/pull/123 --token ghp_xxx
+./wizardmerge-cli-frontend pr-resolve --url https://gitlab.com/owner/repo/-/merge_requests/456 --token glpat-xxx
 
 # Or use environment variable
-export GITHUB_TOKEN=ghp_xxx
-./wizardmerge-cli-frontend pr-resolve --url https://github.com/owner/repo/pull/123
+export GITHUB_TOKEN=ghp_xxx  # For GitHub
+export GITLAB_TOKEN=glpat-xxx  # For GitLab
+./wizardmerge-cli-frontend pr-resolve --url <pr_or_mr_url>
 ```
 
 ### Using the HTTP API
 
 ```sh
-# POST /api/pr/resolve
+# POST /api/pr/resolve - GitHub
 curl -X POST http://localhost:8080/api/pr/resolve \
   -H "Content-Type: application/json" \
   -d '{
     "pr_url": "https://github.com/owner/repo/pull/123",
-    "github_token": "ghp_xxx",
-    "create_branch": true,
-    "branch_name": "wizardmerge-resolved-pr-123"
+    "api_token": "ghp_xxx"
+  }'
+
+# POST /api/pr/resolve - GitLab
+curl -X POST http://localhost:8080/api/pr/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pr_url": "https://gitlab.com/owner/repo/-/merge_requests/456",
+    "api_token": "glpat-xxx"
   }'
 ```
 
 The API will:
-1. Parse the PR URL and fetch PR metadata from GitHub
-2. Retrieve base and head versions of all modified files
-3. Apply the three-way merge algorithm to each file
-4. Auto-resolve conflicts using heuristics
-5. Return merged content with conflict status
+1. Parse the PR/MR URL and detect the platform (GitHub or GitLab)
+2. Fetch PR/MR metadata using the platform-specific API
+3. Retrieve base and head versions of all modified files
+4. Apply the three-way merge algorithm to each file
+5. Auto-resolve conflicts using heuristics
+6. Return merged content with conflict status
+
+### Authentication
+
+- **GitHub**: Use personal access tokens with `repo` scope
+- **GitLab**: Use personal access tokens with `read_api` and `read_repository` scopes
+- Tokens can be passed via `--token` flag or environment variables (`GITHUB_TOKEN`, `GITLAB_TOKEN`)
 
 ## Research Foundation
 
