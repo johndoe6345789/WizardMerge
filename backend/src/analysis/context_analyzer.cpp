@@ -12,6 +12,9 @@ namespace analysis {
 
 namespace {
 
+// Maximum number of lines to scan for imports (imports typically at file top)
+constexpr size_t IMPORT_SCAN_LIMIT = 50;
+
 /**
  * @brief Trim whitespace from string.
  */
@@ -209,8 +212,8 @@ std::vector<std::string> extract_imports(
 ) {
     std::vector<std::string> imports;
     
-    // Scan first 50 lines (imports are typically at the top)
-    size_t scan_limit = std::min(lines.size(), size_t(50));
+    // Scan first lines for imports (imports are typically at the top)
+    size_t scan_limit = std::min(lines.size(), IMPORT_SCAN_LIMIT);
     
     for (size_t i = 0; i < scan_limit; ++i) {
         std::string line = trim(lines[i]);

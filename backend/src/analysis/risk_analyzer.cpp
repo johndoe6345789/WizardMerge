@@ -13,6 +13,11 @@ namespace analysis {
 
 namespace {
 
+// Confidence score weights for risk assessment
+constexpr double BASE_CONFIDENCE = 0.5;        // Base confidence level
+constexpr double SIMILARITY_WEIGHT = 0.3;      // Weight for code similarity
+constexpr double CHANGE_RATIO_WEIGHT = 0.2;    // Weight for change ratio
+
 /**
  * @brief Trim whitespace from string.
  */
@@ -198,8 +203,10 @@ RiskAssessment analyze_risk_ours(
     
     // Calculate confidence score based on various factors
     double change_ratio = (our_changes + their_changes) > 0 ? 
-        static_cast<double>(our_changes) / (our_changes + their_changes) : 0.5;
-    assessment.confidence_score = 0.5 + (0.3 * similarity_to_theirs) + (0.2 * change_ratio);
+        static_cast<double>(our_changes) / (our_changes + their_changes) : BASE_CONFIDENCE;
+    assessment.confidence_score = BASE_CONFIDENCE + 
+                                 (SIMILARITY_WEIGHT * similarity_to_theirs) + 
+                                 (CHANGE_RATIO_WEIGHT * change_ratio);
     
     // Add recommendations
     if (assessment.level >= RiskLevel::MEDIUM) {
@@ -273,8 +280,10 @@ RiskAssessment analyze_risk_theirs(
     
     // Calculate confidence score
     double change_ratio = (our_changes + their_changes) > 0 ? 
-        static_cast<double>(their_changes) / (our_changes + their_changes) : 0.5;
-    assessment.confidence_score = 0.5 + (0.3 * similarity_to_ours) + (0.2 * change_ratio);
+        static_cast<double>(their_changes) / (our_changes + their_changes) : BASE_CONFIDENCE;
+    assessment.confidence_score = BASE_CONFIDENCE + 
+                                 (SIMILARITY_WEIGHT * similarity_to_ours) + 
+                                 (CHANGE_RATIO_WEIGHT * change_ratio);
     
     // Add recommendations
     if (assessment.level >= RiskLevel::MEDIUM) {

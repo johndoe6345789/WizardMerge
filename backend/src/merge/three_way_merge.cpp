@@ -70,13 +70,9 @@ MergeResult three_way_merge(
             conflict.their_lines.push_back({their_line, Line::THEIRS});
             conflict.end_line = result.merged_lines.size();
             
-            // Perform context analysis
-            // Use the merged lines we have so far as context
-            std::vector<std::string> context_lines;
-            for (const auto& line : result.merged_lines) {
-                context_lines.push_back(line.content);
-            }
-            conflict.context = analysis::analyze_context(context_lines, i, i);
+            // Perform context analysis using ours version as context
+            // (could also use base or theirs, but ours is typically most relevant)
+            conflict.context = analysis::analyze_context(ours, i, i);
             
             // Perform risk analysis for different resolution strategies
             std::vector<std::string> base_vec = {base_line};
