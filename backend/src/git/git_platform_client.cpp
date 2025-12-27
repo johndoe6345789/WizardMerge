@@ -42,8 +42,6 @@ std::string base64_decode(const std::string& encoded) {
     return decoded;
 }
 
-namespace {
-
 // Callback for libcurl to write response data
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
     ((std::string*)userp)->append((char*)contents, size * nmemb);
@@ -148,15 +146,17 @@ bool parse_pr_url(const std::string& url, GitPlatform& platform,
             platform = GitPlatform::GitLab;
             std::string full_path = matches[1].str();
             
-            // Extract owner (group) and repo (project) from full path
-            // For GitLab, the path can be group/subgroup/project
-            // We need to split it to get the last part as repo
+            // For GitLab, store the full project path
+            // The path can be: owner/repo or group/subgroup/project
+            // We split at the last slash to separate for potential use
             size_t last_slash = full_path.find_last_of('/');
             if (last_slash != std::string::npos) {
                 owner = full_path.substr(0, last_slash);
                 repo = full_path.substr(last_slash + 1);
             } else {
-                // Single level, no subgroups
+                // Single level project (rare but possible)
+                // Store entire path as owner, repo empty
+                // API calls will use full path by concatenating
                 owner = full_path;
                 repo = "";
             }
@@ -271,18 +271,18 @@ std::optional<PullRequest> fetch_pull_request(
         return std::nullopt;
     }
 
-    if (Json::parseFromStream(reader, files_stream, &files_root, &errs)) {
-        if (platform == GitPlatform::GitHub && files_root.isArray()) {
-            // GitHub format: array of file objects
-            for (const auto& file : files_root) {
-                PRFile pr_file;
-                pr_file.filename = file.get("filename", "").asString();
-                pr_file.status = file.get("status", "").asString();
-                pr_file.additions = file.get("additions", 0).asInt();
-                pr_file.deletions = file.get("deletions", 0).asInt();
-                pr_file.changes = file.get("changes", 0).asInt();
-                
-                pr.files.push_back(pr_file);
+    // Process files based on platform
+    if (platform == GitPlatform::GitHub && files_root.isArray()) {
+        // GitHub format: array of file objects
+        for (const auto& file : files_root) {
+            PRFile pr_file;
+            pr_file.filename = file.get("filename", "").asString();
+            pr_file.status = file.get("status", "").asString();
+            pr_file.additions = file.get("additions", 0).asInt();
+            pr_file.deletions = file.get("deletions", 0).asInt();
+            pr_file.changes = file.get("changes", 0).asInt();
+            
+            pr.files.push_back(pr_file);
             }
         } else if (platform == GitPlatform::GitLab && files_root.isMember("changes")) {
             // GitLab format: object with "changes" array
