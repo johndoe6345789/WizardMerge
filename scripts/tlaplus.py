@@ -9,12 +9,9 @@ The TLC model checker verifies invariants and temporal properties of the
 WizardMerge merge algorithm specification.
 """
 
-import os
 import sys
 import subprocess
 import urllib.request
-import zipfile
-import shutil
 from pathlib import Path
 
 
@@ -100,7 +97,14 @@ def parse_spec(jar_path: Path, spec_dir: Path, spec_name: str, output_dir: Path)
 
 
 def run_tlc(jar_path: Path, spec_dir: Path, spec_name: str, output_dir: Path) -> int:
-    """Run TLC model checker on the specification."""
+    """
+    Run TLC model checker on the specification.
+    
+    Note: This function is currently not used in the main workflow because
+    WizardMergeSpec is a parametric specification requiring concrete constant
+    values. It's kept for future use when test harness modules with specific
+    instantiations are added.
+    """
     spec_file = spec_dir / f"{spec_name}.tla"
     cfg_file = spec_dir / f"{spec_name}.cfg"
     
