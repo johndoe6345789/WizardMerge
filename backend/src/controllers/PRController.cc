@@ -195,8 +195,9 @@ void PRController::resolvePR(
             response["note"] = "Git CLI not available - branch creation skipped";
         } else {
             // Clone repository to temporary location
-            std::string temp_dir = "/tmp/wizardmerge_pr_" + std::to_string(pr_number) + "_" + 
-                                  std::to_string(std::time(nullptr));
+            std::filesystem::path temp_base = std::filesystem::temp_directory_path();
+            std::string temp_dir = (temp_base / ("wizardmerge_pr_" + std::to_string(pr_number) + "_" + 
+                                   std::to_string(std::time(nullptr)))).string();
             
             // Build repository URL
             std::string repo_url;
@@ -216,8 +217,8 @@ void PRController::resolvePR(
             if (!clone_result.success) {
                 response["note"] = "Failed to clone repository: " + clone_result.error;
             } else {
-                // Create new branch
-                auto branch_result = create_branch(temp_dir, branch_name, pr.base_ref);
+                // Create new branch (without base_branch parameter since we cloned from base_ref)
+                auto branch_result = create_branch(temp_dir, branch_name);
                 
                 if (!branch_result.success) {
                     response["note"] = "Failed to create branch: " + branch_result.error;

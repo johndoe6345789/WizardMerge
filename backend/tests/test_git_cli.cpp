@@ -16,8 +16,9 @@ protected:
     std::string test_dir;
     
     void SetUp() override {
-        // Create temporary test directory
-        test_dir = "/tmp/wizardmerge_git_test_" + std::to_string(time(nullptr));
+        // Create temporary test directory using std::filesystem
+        std::filesystem::path temp_base = std::filesystem::temp_directory_path();
+        test_dir = (temp_base / ("wizardmerge_git_test_" + std::to_string(time(nullptr)))).string();
         fs::create_directories(test_dir);
     }
     

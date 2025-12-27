@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iostream>
 #include <filesystem>
+#include <sys/wait.h>
 
 namespace wizardmerge {
 namespace git {
@@ -141,13 +142,36 @@ GitResult commit(
 ) {
     // Set user config if provided
     if (!config.user_name.empty() && !config.user_email.empty()) {
-        execute_command(git_command(repo_path, 
+        auto name_result = execute_command(git_command(repo_path, 
             "config user.name \"" + config.user_name + "\""));
-        execute_command(git_command(repo_path, 
+        if (!name_result.success) {
+            GitResult result;
+            result.success = false;
+            result.error = "Failed to set user.name: " + name_result.error;
+            result.exit_code = name_result.exit_code;
+            return result;
+        }
+        
+        auto email_result = execute_command(git_command(repo_path, 
             "config user.email \"" + config.user_email + "\""));
+        if (!email_result.success) {
+            GitResult result;
+            result.success = false;
+            result.error = "Failed to set user.email: " + email_result.error;
+            result.exit_code = email_result.exit_code;
+            return result;
+        }
     }
     
-    std::string cmd = "commit -m \"" + message + "\"";
+    // Escape commit message for shell
+    std::string escaped_message = message;
+    size_t pos = 0;
+    while ((pos = escaped_message.find("\"", pos)) != std::string::npos) {
+        escaped_message.replace(pos, 1, "\\\"");
+        pos += 2;
+    }
+    
+    std::string cmd = "commit -m \"" + escaped_message + "\"";
     return execute_command(git_command(repo_path, cmd));
 }
 
@@ -190,7 +214,14 @@ std::optional<std::string> get_current_branch(const std::string& repo_path) {
     
     // Trim whitespace
     std::string branch = result.output;
-    branch.erase(branch.find_last_not_of(" \n\r\t") + 1);
+    size_t last_non_ws = branch.find_last_not_of(" \n\r\t");
+    
+    if (last_non_ws == std::string::npos) {
+        // String contains only whitespace
+        return std::nullopt;
+    }
+    
+    branch.erase(last_non_ws + 1);
     
     return branch;
 }
