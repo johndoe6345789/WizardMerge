@@ -14,8 +14,7 @@ find_package(CURL QUIET)
 # Library sources
 set(WIZARDMERGE_SOURCES
     src/merge/three_way_merge.cpp
-    src/analysis/context_analyzer.cpp
-    src/analysis/risk_analyzer.cpp
+    src/git/git_cli.cpp
 )
 
 # Add git sources only if CURL is available
@@ -71,8 +70,7 @@ if(GTest_FOUND)
     
     set(TEST_SOURCES 
         tests/test_three_way_merge.cpp
-        tests/test_context_analyzer.cpp
-        tests/test_risk_analyzer.cpp
+        tests/test_git_cli.cpp
     )
     
     # Add github client tests only if CURL is available

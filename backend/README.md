@@ -172,28 +172,38 @@ curl -X POST http://localhost:8080/api/merge \
 
 ### POST /api/pr/resolve
 
-Resolve conflicts in a GitHub pull request.
+Resolve conflicts in a GitHub or GitLab pull/merge request.
 
 **Request:**
 ```json
 {
   "pr_url": "https://github.com/owner/repo/pull/123",
-  "github_token": "ghp_xxx",
+  "api_token": "ghp_xxx",
   "create_branch": true,
   "branch_name": "wizardmerge-resolved-pr-123"
 }
 ```
+
+**Request Fields:**
+- `pr_url` (required): Pull/merge request URL (GitHub or GitLab)
+- `api_token` (optional): API token for authentication (GitHub: `ghp_*`, GitLab: `glpat-*`)
+- `create_branch` (optional, default: false): Create a new branch with resolved changes
+- `branch_name` (optional): Custom branch name (auto-generated if not provided)
 
 **Response:**
 ```json
 {
   "success": true,
   "pr_info": {
+    "platform": "GitHub",
     "number": 123,
     "title": "Feature: Add new functionality",
     "base_ref": "main",
     "head_ref": "feature-branch",
-    "mergeable": false
+    "base_sha": "abc123...",
+    "head_sha": "def456...",
+    "mergeable": false,
+    "mergeable_state": "dirty"
   },
   "resolved_files": [
     {
@@ -206,21 +216,52 @@ Resolve conflicts in a GitHub pull request.
   ],
   "total_files": 5,
   "resolved_count": 4,
-  "failed_count": 0
+  "failed_count": 0,
+  "branch_created": true,
+  "branch_name": "wizardmerge-resolved-pr-123",
+  "branch_path": "/tmp/wizardmerge_pr_123_1234567890",
+  "note": "Branch created successfully. Push to remote with: git -C /tmp/wizardmerge_pr_123_1234567890 push origin wizardmerge-resolved-pr-123"
 }
 ```
 
 **Example with curl:**
 ```sh
+# Basic conflict resolution
 curl -X POST http://localhost:8080/api/pr/resolve \
   -H "Content-Type: application/json" \
   -d '{
     "pr_url": "https://github.com/owner/repo/pull/123",
-    "github_token": "ghp_xxx"
+    "api_token": "ghp_xxx"
+  }'
+
+# With branch creation
+curl -X POST http://localhost:8080/api/pr/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pr_url": "https://github.com/owner/repo/pull/123",
+    "api_token": "ghp_xxx",
+    "create_branch": true,
+    "branch_name": "resolved-conflicts"
   }'
 ```
 
-**Note:** Requires libcurl to be installed. The GitHub token is optional for public repositories but required for private ones.
+**Git CLI Integration:**
+
+When `create_branch: true` is specified:
+1. **Clone**: Repository is cloned to `/tmp/wizardmerge_pr_<number>_<timestamp>`
+2. **Branch**: New branch is created from the PR base branch
+3. **Resolve**: Merged files are written to the working directory
+4. **Commit**: Changes are staged and committed with message "Resolve conflicts for PR #<number>"
+5. **Response**: Branch path is returned for manual inspection or pushing
+
+**Requirements for Branch Creation:**
+- Git CLI must be installed (`git --version` works)
+- Sufficient disk space for repository clone
+- Write permissions to `/tmp` directory
+
+**Security Note:** Branch is created locally. To push to remote, configure Git credentials separately (SSH keys or credential helpers). Do not embed tokens in Git URLs.
+
+**Note:** Requires libcurl to be installed. The API token is optional for public repositories but required for private ones.
 
 ## Deployment
 

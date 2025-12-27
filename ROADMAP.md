@@ -77,13 +77,19 @@ WizardMerge aims to become the most intuitive and powerful tool for resolving me
 ### 1.5 Git Integration
 **Priority: MEDIUM**
 
+- [x] **Git CLI wrapper module** (`backend/include/wizardmerge/git/git_cli.h`)
+  - Clone repositories
+  - Create and checkout branches
+  - Stage, commit, and push changes
+  - Query repository status
+  - Integrated into PR resolution workflow
 - [ ] Detect when running in Git repository
 - [ ] Read `.git/MERGE_HEAD` to identify conflicts
 - [ ] List all conflicted files
 - [ ] Mark files as resolved in Git
 - [ ] Launch from command line: `wizardmerge [file]`
 
-**Deliverable**: `wizardmerge/git/` module and CLI enhancements
+**Deliverable**: `backend/src/git/` module and CLI enhancements ✓ (Partial)
 
 ---
 
@@ -93,18 +99,71 @@ WizardMerge aims to become the most intuitive and powerful tool for resolving me
 **Priority: HIGH**
 
 - [ ] Semantic merge for common file types:
-  - JSON: merge by key structure
-  - YAML: preserve hierarchy
-  - Package files: intelligent dependency merging
-  - XML: structure-aware merging
+  - **JSON**: Merge by key structure, preserve nested objects, handle array conflicts intelligently
+    - Detect structural changes vs. value changes
+    - Handle object key additions/deletions
+    - Smart array merging (by ID fields when available)
+  - **YAML**: Preserve hierarchy and indentation
+    - Maintain comments and anchors
+    - Detect schema-aware conflicts
+    - Handle multi-document YAML files
+  - **Package files**: Intelligent dependency merging
+    - `package.json` (npm): Merge dependencies by semver ranges
+    - `requirements.txt` (pip): Detect version conflicts
+    - `go.mod`, `Cargo.toml`, `pom.xml`: Language-specific dependency resolution
+    - Detect breaking version upgrades
+  - **XML**: Structure-aware merging
+    - Preserve DTD and schema declarations
+    - Match elements by attributes (e.g., `id`)
+    - Handle namespaces correctly
 - [ ] Language-aware merging (AST-based):
-  - Python imports and functions
-  - JavaScript/TypeScript modules
-  - Java classes and methods
+  - **Python**: Parse imports, function definitions, class hierarchies
+    - Detect import conflicts and duplicates
+    - Merge function/method definitions intelligently
+    - Handle decorators and type hints
+  - **JavaScript/TypeScript**: Module and export analysis
+    - Merge import statements without duplicates
+    - Handle named vs. default exports
+    - Detect React component conflicts
+  - **Java**: Class structure and method signatures
+    - Merge method overloads
+    - Handle package declarations
+    - Detect annotation conflicts
+  - **C/C++**: Header guards, include directives, function declarations
+    - Merge `#include` directives
+    - Detect macro conflicts
+    - Handle namespace conflicts
+- [ ] SDG (System Dependence Graph) Analysis:
+  - **Implementation based on research paper** (docs/PAPER.md)
+  - Build dependency graphs at multiple levels:
+    - **Text-level**: Line and block dependencies
+    - **LLVM-IR level**: Data and control flow dependencies (for C/C++)
+    - **AST-level**: Semantic dependencies (for all languages)
+  - **Conflict Analysis**:
+    - Detect true conflicts vs. false conflicts
+    - Identify dependent code blocks affected by conflicts
+    - Compute conflict impact radius
+    - Suggest resolution based on dependency chains
+  - **Features**:
+    - 28.85% reduction in resolution time (per research)
+    - Suggestions for >70% of conflicted blocks
+    - Visual dependency graph in UI
+    - Highlight upstream/downstream dependencies
+  - **Implementation approach**:
+    - Use tree-sitter for AST parsing
+    - Integrate LLVM for IR analysis (C/C++ code)
+    - Build dependency database per file
+    - Cache analysis results for performance
 - [ ] Auto-resolution suggestions with confidence scores
+  - Assign confidence based on SDG analysis
+  - Learn from user's resolution patterns
+  - Machine learning model for conflict classification
 - [ ] Learn from user's resolution patterns
+  - Store resolution history
+  - Pattern matching for similar conflicts
+  - Suggest resolutions based on past behavior
 
-**Deliverable**: `wizardmerge/algo/semantic/` module
+**Deliverable**: `backend/src/semantic/` module with SDG analysis engine
 
 ### 2.2 Enhanced Visualization
 **Priority: MEDIUM**
@@ -115,6 +174,10 @@ WizardMerge aims to become the most intuitive and powerful tool for resolving me
 - [ ] Collapsible unchanged regions
 - [ ] Blame/history annotations
 - [ ] Conflict complexity indicator
+- [ ] **SDG visualization**:
+  - Interactive dependency graph
+  - Highlight conflicted nodes and their dependencies
+  - Show data flow and control flow edges
 
 **Deliverable**: Advanced QML components and visualization modes
 
@@ -126,8 +189,12 @@ WizardMerge aims to become the most intuitive and powerful tool for resolving me
 - [ ] Show syntax errors in real-time
 - [ ] Auto-formatting after resolution
 - [ ] Import/dependency conflict detection
+- [ ] **SDG-based suggestions**:
+  - Use LSP for real-time dependency analysis
+  - Validate resolution against type system
+  - Suggest imports/references needed
 
-**Deliverable**: `wizardmerge/lsp/` integration module
+**Deliverable**: `backend/src/lsp/` integration module
 
 ### 2.4 Multi-Frontend Architecture
 **Priority: HIGH**
@@ -143,7 +210,76 @@ WizardMerge aims to become the most intuitive and powerful tool for resolving me
 
 **Deliverable**: `wizardmerge/core/` (backend abstraction), `frontends/qt6/` (C++/Qt6), `frontends/web/` (Next.js)
 
-### 2.5 Collaboration Features
+### 2.5 Additional Platform Support
+**Priority: MEDIUM**
+
+- [ ] **Bitbucket** Pull Request support:
+  - Bitbucket Cloud API integration
+  - URL pattern: `https://bitbucket.org/workspace/repo/pull-requests/123`
+  - Authentication via App passwords or OAuth
+  - Support for Bitbucket Server (self-hosted)
+- [ ] **Azure DevOps** Pull Request support:
+  - Azure DevOps REST API integration
+  - URL pattern: `https://dev.azure.com/org/project/_git/repo/pullrequest/123`
+  - Authentication via Personal Access Tokens
+  - Support for on-premises Azure DevOps Server
+- [ ] **Gitea/Forgejo** support:
+  - Self-hosted Git service integration
+  - Compatible API with GitHub/GitLab patterns
+  - Community-driven platforms
+- [ ] **Extensible Platform Pattern**:
+  - **Abstract Git Platform Interface**:
+    ```cpp
+    class GitPlatformAPI {
+      virtual PullRequest fetch_pr_info() = 0;
+      virtual std::vector<std::string> fetch_file_content() = 0;
+      virtual bool create_comment() = 0;
+      virtual bool update_pr_status() = 0;
+    };
+    ```
+  - **Platform Registry**:
+    - Auto-detect platform from URL pattern
+    - Plugin system for custom platforms
+    - Configuration-based platform definitions
+  - **Common API adapter layer**:
+    - Normalize PR/MR data structures across platforms
+    - Handle authentication differences (tokens, OAuth, SSH keys)
+    - Abstract API versioning differences
+  - **Implementation Guide** (for adding new platforms):
+    1. Add URL regex pattern to `parse_pr_url()` in `git_platform_client.cpp`
+    2. Add platform enum value to `GitPlatform` enum
+    3. Implement API client functions for the platform
+    4. Add platform-specific authentication handling
+    5. Add unit tests for URL parsing and API calls
+    6. Update documentation with examples
+  - **Example: Adding Bitbucket**:
+    ```cpp
+    // 1. Add to GitPlatform enum
+    enum class GitPlatform { GitHub, GitLab, Bitbucket, Unknown };
+    
+    // 2. Add URL pattern
+    std::regex bitbucket_regex(
+      R"((?:https?://)?bitbucket\.org/([^/]+)/([^/]+)/pull-requests/(\d+))"
+    );
+    
+    // 3. Implement API functions
+    if (platform == GitPlatform::Bitbucket) {
+      api_url = "https://api.bitbucket.org/2.0/repositories/" + 
+                owner + "/" + repo + "/pullrequests/" + pr_number;
+      // Add Bearer token authentication
+      headers = curl_slist_append(headers, 
+        ("Authorization: Bearer " + token).c_str());
+    }
+    
+    // 4. Map Bitbucket response to PullRequest structure
+    // Bitbucket uses different field names (e.g., "source" vs "head")
+    pr.base_ref = root["destination"]["branch"]["name"].asString();
+    pr.head_ref = root["source"]["branch"]["name"].asString();
+    ```
+
+**Deliverable**: `backend/src/git/platform_registry.cpp` and platform-specific adapters
+
+### 2.6 Collaboration Features
 **Priority: LOW**
 
 - [ ] Add comments to conflicts
@@ -154,7 +290,7 @@ WizardMerge aims to become the most intuitive and powerful tool for resolving me
 
 **Deliverable**: Collaboration UI and sharing infrastructure
 
-### 2.6 Testing & Quality
+### 2.7 Testing & Quality
 **Priority: HIGH**
 
 - [ ] Comprehensive test suite for merge algorithms
