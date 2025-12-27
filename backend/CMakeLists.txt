@@ -9,10 +9,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Find dependencies via Conan
 find_package(Drogon CONFIG QUIET)
 find_package(GTest QUIET)
+find_package(CURL QUIET)
 
 # Library sources
 add_library(wizardmerge
     src/merge/three_way_merge.cpp
+    src/git/github_client.cpp
 )
 
 target_include_directories(wizardmerge
@@ -21,11 +23,17 @@ target_include_directories(wizardmerge
         $<INSTALL_INTERFACE:include>
 )
 
+# Link CURL if available
+if(CURL_FOUND)
+    target_link_libraries(wizardmerge PUBLIC CURL::libcurl)
+endif()
+
 # Executable (only if Drogon is found)
 if(Drogon_FOUND)
     add_executable(wizardmerge-cli
         src/main.cpp
         src/controllers/MergeController.cc
+        src/controllers/PRController.cc
     )
 
     target_link_libraries(wizardmerge-cli PRIVATE wizardmerge Drogon::Drogon)
@@ -44,6 +52,7 @@ if(GTest_FOUND)
     enable_testing()
     add_executable(wizardmerge-tests
         tests/test_three_way_merge.cpp
+        tests/test_github_client.cpp
     )
     target_link_libraries(wizardmerge-tests PRIVATE wizardmerge GTest::gtest_main)
     
