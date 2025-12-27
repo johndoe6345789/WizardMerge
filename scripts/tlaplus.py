@@ -85,10 +85,10 @@ def parse_spec(jar_path: Path, spec_dir: Path, spec_name: str, output_dir: Path)
         
         # Check result - SANY returns 0 on success and doesn't output "***Parse Error***"
         if result.returncode == 0 and "***Parse Error***" not in result.stdout:
-            print(f"\n✓ TLA+ specification parsed successfully!")
+            print("\n✓ TLA+ specification parsed successfully!")
             return 0
         else:
-            print(f"\n✗ TLA+ specification parsing failed")
+            print("\n✗ TLA+ specification parsing failed")
             return 1
             
     except Exception as e:
@@ -160,7 +160,7 @@ def run_tlc(jar_path: Path, spec_dir: Path, spec_name: str, output_dir: Path) ->
         
         # Check result
         if result.returncode == 0:
-            print(f"\n✓ TLC model checking completed successfully!")
+            print("\n✓ TLC model checking completed successfully!")
             return 0
         else:
             print(f"\n✗ TLC model checking failed with exit code {result.returncode}")
