@@ -10,31 +10,73 @@ A comprehensive multi-stage pipeline with quality gates at each level.
 
 #### Workflow Structure
 
+The workflow implements a gated tree pattern where each stage (gate) must pass before the next stage begins. This ensures quality at every step.
+
 ```
-Gate 1: Code Quality & Linting
-├── lint-cpp (C++ formatting)
-├── lint-typescript (TypeScript linting)
-└── lint-python (Python linting)
-        ↓
-Gate 2: Build Components
-├── build-backend (C++ backend) ← depends on lint-cpp, lint-python
-├── build-cli (CLI frontend) ← depends on lint-cpp
-├── build-qt6 (Qt6 frontend) ← depends on lint-cpp
-└── build-nextjs (Next.js frontend) ← depends on lint-typescript
-        ↓
-Gate 3: Testing
-├── test-backend ← depends on build-backend
-└── test-tlaplus ← depends on lint-python
-        ↓
-Gate 4: Security Scanning
-└── security-codeql ← depends on test-backend, test-tlaplus
-        ↓
-Gate 5: Integration Tests
-└── integration-tests ← depends on security-codeql
-        ↓
-Gate 6: Deployment Gate (main branch only)
-├── deployment-ready ← depends on integration-tests
-└── publish-results ← depends on integration-tests
+┌─────────────────────────────────────────────────────────────┐
+│                   Gate 1: Code Quality                      │
+│  ┌──────────┐  ┌────────────────┐  ┌────────────┐         │
+│  │ lint-cpp │  │ lint-typescript │  │ lint-python│         │
+│  └────┬─────┘  └───────┬────────┘  └─────┬──────┘         │
+└───────┼────────────────┼──────────────────┼────────────────┘
+        │                │                  │
+        ├────────────────┴────────┬─────────┤
+        │                         │         │
+┌───────┼─────────────────────────┼─────────┼────────────────┐
+│       ↓                         ↓         ↓                │
+│              Gate 2: Build Components                      │
+│  ┌───────────────┐  ┌──────────┐  ┌───────┐  ┌──────────┐│
+│  │ build-backend │  │build-cli │  │build- │  │build-    ││
+│  │   (C++/Conan) │  │  (C++)   │  │ qt6   │  │ nextjs   ││
+│  └───────┬───────┘  └────┬─────┘  └───┬───┘  └────┬─────┘│
+└──────────┼───────────────┼────────────┼───────────┼───────┘
+           │               │            │           │
+           ├───────────────┘            └───────────┘
+           │
+┌──────────┼────────────────────────────────────────────────┐
+│          ↓                                                 │
+│                    Gate 3: Testing                         │
+│  ┌──────────────┐              ┌────────────┐            │
+│  │ test-backend │              │test-tlaplus│            │
+│  └──────┬───────┘              └──────┬─────┘            │
+└─────────┼────────────────────────────┼───────────────────┘
+          │                            │
+          └────────────┬───────────────┘
+                       │
+┌──────────────────────┼───────────────────────────────────┐
+│                      ↓                                    │
+│             Gate 4: Security Scanning                     │
+│          ┌─────────────────────────┐                     │
+│          │   security-codeql       │                     │
+│          │ (C++, Python, JavaScript)│                    │
+│          └────────────┬─────────────┘                    │
+└───────────────────────┼──────────────────────────────────┘
+                        │
+┌───────────────────────┼──────────────────────────────────┐
+│                       ↓                                   │
+│           Gate 5: Integration Tests                       │
+│          ┌──────────────────────┐                        │
+│          │ integration-tests    │                        │
+│          │  (API endpoint tests)│                        │
+│          └──────────┬───────────┘                        │
+└─────────────────────┼──────────────────────────────────┬─┘
+                      │                                  │
+              ┌───────┴────────┐                        │
+              │  main branch?  │                        │
+              └───────┬────────┘                        │
+                      │ yes                             │
+┌─────────────────────┼─────────────────────────────────┼─┐
+│                     ↓                                 ↓ │
+│        Gate 6: Deployment & Publishing (main only)      │
+│  ┌──────────────────┐         ┌──────────────────┐    │
+│  │ deployment-ready │         │ publish-results  │    │
+│  │   (final gate)   │         │ (to ci/test-results)│  │
+│  └──────────────────┘         └──────────────────┘    │
+└─────────────────────────────────────────────────────────┘
+
+Legend:
+├─ Parallel execution (independent jobs)
+↓  Sequential execution (dependent jobs)
 ```
 
 #### Gates Explained
