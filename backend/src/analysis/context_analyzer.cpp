@@ -37,7 +37,11 @@ bool is_function_definition(const std::string& line) {
         std::regex(R"(^def\s+\w+\s*\([^)]*\):)"),       // Python: def name(params):
         std::regex(R"(^function\s+\w+\s*\([^)]*\))"),   // JavaScript: function name(params)
         std::regex(R"(^\w+\s*:\s*function\s*\([^)]*\))"), // JS object method
-        std::regex(R"(^(public|private|protected)?\s*\w+\s+\w+\s*\([^)]*\))") // Java/C# methods
+        std::regex(R"(^(public|private|protected)?\s*\w+\s+\w+\s*\([^)]*\))"), // Java/C# methods
+        // TypeScript patterns
+        std::regex(R"(^(export\s+)?(async\s+)?function\s+\w+)"), // TS: export/async function
+        std::regex(R"(^(export\s+)?(const|let|var)\s+\w+\s*=\s*(async\s+)?\([^)]*\)\s*=>)"), // TS: arrow functions
+        std::regex(R"(^(public|private|protected|readonly)?\s*\w+\s*\([^)]*\)\s*:\s*\w+)") // TS: typed methods
     };
     
     for (const auto& pattern : patterns) {
@@ -64,9 +68,15 @@ std::string get_function_name_from_line(const std::string& line) {
         return match[1].str();
     }
     
-    // JavaScript: function function_name(
-    std::regex js_pattern(R"(function\s+(\w+)\s*\()");
+    // JavaScript/TypeScript: function function_name( or export function function_name(
+    std::regex js_pattern(R"((?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\()");
     if (std::regex_search(trimmed, match, js_pattern)) {
+        return match[1].str();
+    }
+    
+    // TypeScript: const/let/var function_name = (params) =>
+    std::regex arrow_pattern(R"((?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>)");
+    if (std::regex_search(trimmed, match, arrow_pattern)) {
         return match[1].str();
     }
     
@@ -88,7 +98,12 @@ bool is_class_definition(const std::string& line) {
     std::vector<std::regex> patterns = {
         std::regex(R"(^class\s+\w+)"),                    // Python/C++/Java: class Name
         std::regex(R"(^(public|private)?\s*class\s+\w+)"), // Java/C#: visibility class Name
-        std::regex(R"(^struct\s+\w+)")                    // C/C++: struct Name
+        std::regex(R"(^struct\s+\w+)"),                   // C/C++: struct Name
+        // TypeScript patterns
+        std::regex(R"(^(export\s+)?(abstract\s+)?class\s+\w+)"), // TS: export class Name
+        std::regex(R"(^(export\s+)?interface\s+\w+)"),    // TS: interface Name
+        std::regex(R"(^(export\s+)?type\s+\w+\s*=)"),     // TS: type Name =
+        std::regex(R"(^(export\s+)?enum\s+\w+)")          // TS: enum Name
     };
     
     for (const auto& pattern : patterns) {
@@ -107,7 +122,9 @@ std::string get_class_name_from_line(const std::string& line) {
     std::string trimmed = trim(line);
     
     std::smatch match;
-    std::regex pattern(R"((class|struct)\s+(\w+))");
+    
+    // Match class, struct, interface, type, or enum
+    std::regex pattern(R"((?:export\s+)?(?:abstract\s+)?(class|struct|interface|type|enum)\s+(\w+))");
     
     if (std::regex_search(trimmed, match, pattern)) {
         return match[2].str();
@@ -223,7 +240,13 @@ std::vector<std::string> extract_imports(
             line.find("import ") == 0 ||
             line.find("from ") == 0 ||
             line.find("require(") != std::string::npos ||
-            line.find("using ") == 0) {
+            line.find("using ") == 0 ||
+            // TypeScript/ES6 specific patterns
+            line.find("import{") == 0 ||
+            line.find("import *") == 0 ||
+            line.find("import type") == 0 ||
+            line.find("export {") == 0 ||
+            line.find("export *") == 0) {
             imports.push_back(line);
         }
     }

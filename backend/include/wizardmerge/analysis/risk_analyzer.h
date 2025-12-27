@@ -112,6 +112,26 @@ bool has_api_signature_changes(
     const std::vector<std::string>& modified
 );
 
+/**
+ * @brief Detects if TypeScript interface or type definitions changed.
+ *
+ * @param base Base version lines
+ * @param modified Modified version lines
+ * @return true if interface/type changes detected
+ */
+bool has_typescript_interface_changes(
+    const std::vector<std::string>& base,
+    const std::vector<std::string>& modified
+);
+
+/**
+ * @brief Checks if file is a package-lock.json file.
+ *
+ * @param filename Name of the file
+ * @return true if file is package-lock.json
+ */
+bool is_package_lock_file(const std::string& filename);
+
 }  // namespace analysis
 }  // namespace wizardmerge
 

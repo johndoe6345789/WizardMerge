@@ -82,6 +82,10 @@ bool is_function_signature(const std::string& line) {
         std::regex(R"(^\w+\s+\w+\s*\([^)]*\))"),      // C/C++/Java
         std::regex(R"(^def\s+\w+\s*\([^)]*\):)"),     // Python
         std::regex(R"(^function\s+\w+\s*\([^)]*\))"), // JavaScript
+        // TypeScript patterns
+        std::regex(R"(^(export\s+)?(async\s+)?function\s+\w+\s*\([^)]*\))"), // TS function
+        std::regex(R"(^(const|let|var)\s+\w+\s*=\s*\([^)]*\)\s*=>)"), // Arrow function
+        std::regex(R"(^\w+\s*\([^)]*\)\s*:\s*\w+)"),  // TS: method with return type
     };
     
     for (const auto& pattern : patterns) {
@@ -117,6 +121,13 @@ bool contains_critical_patterns(const std::vector<std::string>& lines) {
         std::regex(R"(\.secret\s*=)"),          // Secret assignments
         std::regex(R"(sudo\s+)"),               // Sudo usage
         std::regex(R"(chmod\s+777)"),           // Overly permissive permissions
+        // TypeScript specific critical patterns
+        std::regex(R"(dangerouslySetInnerHTML)"), // React XSS risk
+        std::regex(R"(\bas\s+any\b)"),          // TypeScript: type safety bypass
+        std::regex(R"(@ts-ignore)"),            // TypeScript: error suppression
+        std::regex(R"(@ts-nocheck)"),           // TypeScript: file-level error suppression
+        std::regex(R"(localStorage\.setItem.*password)"), // Storing passwords in localStorage
+        std::regex(R"(innerHTML\s*=)"),         // XSS risk
     };
     
     for (const auto& line : lines) {
@@ -146,6 +157,67 @@ bool has_api_signature_changes(
     }
     
     return false;
+}
+
+bool has_typescript_interface_changes(
+    const std::vector<std::string>& base,
+    const std::vector<std::string>& modified
+) {
+    // Check for interface, type, or enum changes
+    std::vector<std::regex> ts_definition_patterns = {
+        std::regex(R"(\binterface\s+\w+)"),
+        std::regex(R"(\btype\s+\w+\s*=)"),
+        std::regex(R"(\benum\s+\w+)"),
+    };
+    
+    // Check if any TypeScript definition exists in base
+    bool base_has_ts_def = false;
+    for (const auto& line : base) {
+        std::string trimmed = trim(line);
+        for (const auto& pattern : ts_definition_patterns) {
+            if (std::regex_search(trimmed, pattern)) {
+                base_has_ts_def = true;
+                break;
+            }
+        }
+        if (base_has_ts_def) break;
+    }
+    
+    // Check if any TypeScript definition exists in modified
+    bool modified_has_ts_def = false;
+    for (const auto& line : modified) {
+        std::string trimmed = trim(line);
+        for (const auto& pattern : ts_definition_patterns) {
+            if (std::regex_search(trimmed, pattern)) {
+                modified_has_ts_def = true;
+                break;
+            }
+        }
+        if (modified_has_ts_def) break;
+    }
+    
+    // If either has TS definitions and content differs, it's a TS change
+    if (base_has_ts_def || modified_has_ts_def) {
+        // Check if the actual content changed
+        if (base.size() != modified.size()) {
+            return true;
+        }
+        for (size_t i = 0; i < base.size(); ++i) {
+            if (trim(base[i]) != trim(modified[i])) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+bool is_package_lock_file(const std::string& filename) {
+    // Check for package-lock.json, yarn.lock, pnpm-lock.yaml, etc.
+    return filename.find("package-lock.json") != std::string::npos ||
+           filename.find("yarn.lock") != std::string::npos ||
+           filename.find("pnpm-lock.yaml") != std::string::npos ||
+           filename.find("bun.lockb") != std::string::npos;
 }
 
 RiskAssessment analyze_risk_ours(
@@ -178,6 +250,15 @@ RiskAssessment analyze_risk_ours(
     if (has_api_signature_changes(base, ours)) {
         assessment.has_api_changes = true;
         assessment.risk_factors.push_back("Function/method signatures changed");
+        if (assessment.level < RiskLevel::MEDIUM) {
+            assessment.level = RiskLevel::MEDIUM;
+        }
+    }
+    
+    // Check for TypeScript interface/type changes
+    if (has_typescript_interface_changes(base, ours)) {
+        assessment.has_api_changes = true;
+        assessment.risk_factors.push_back("TypeScript interface or type definitions changed");
         if (assessment.level < RiskLevel::MEDIUM) {
             assessment.level = RiskLevel::MEDIUM;
         }
@@ -260,6 +341,15 @@ RiskAssessment analyze_risk_theirs(
         }
     }
     
+    // Check for TypeScript interface/type changes
+    if (has_typescript_interface_changes(base, theirs)) {
+        assessment.has_api_changes = true;
+        assessment.risk_factors.push_back("TypeScript interface or type definitions changed");
+        if (assessment.level < RiskLevel::MEDIUM) {
+            assessment.level = RiskLevel::MEDIUM;
+        }
+    }
+    
     // Assess based on amount of change
     if (their_changes > 10) {
         assessment.has_logic_changes = true;
@@ -337,6 +427,13 @@ RiskAssessment analyze_risk_both(
     if (has_api_signature_changes(base, ours) || has_api_signature_changes(base, theirs)) {
         assessment.has_api_changes = true;
         assessment.risk_factors.push_back("Multiple API changes may cause conflicts");
+        assessment.level = RiskLevel::HIGH;
+    }
+    
+    // TypeScript interface/type changes from either side
+    if (has_typescript_interface_changes(base, ours) || has_typescript_interface_changes(base, theirs)) {
+        assessment.has_api_changes = true;
+        assessment.risk_factors.push_back("Multiple TypeScript interface/type changes may cause conflicts");
         assessment.level = RiskLevel::HIGH;
     }
     
