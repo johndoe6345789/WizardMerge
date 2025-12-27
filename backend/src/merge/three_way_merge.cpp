@@ -4,6 +4,8 @@
  */
 
 #include "wizardmerge/merge/three_way_merge.h"
+#include "wizardmerge/analysis/context_analyzer.h"
+#include "wizardmerge/analysis/risk_analyzer.h"
 #include <algorithm>
 
 namespace wizardmerge {
@@ -67,6 +69,19 @@ MergeResult three_way_merge(
             conflict.our_lines.push_back({our_line, Line::OURS});
             conflict.their_lines.push_back({their_line, Line::THEIRS});
             conflict.end_line = result.merged_lines.size();
+            
+            // Perform context analysis using ours version as context
+            // (could also use base or theirs, but ours is typically most relevant)
+            conflict.context = analysis::analyze_context(ours, i, i);
+            
+            // Perform risk analysis for different resolution strategies
+            std::vector<std::string> base_vec = {base_line};
+            std::vector<std::string> ours_vec = {our_line};
+            std::vector<std::string> theirs_vec = {their_line};
+            
+            conflict.risk_ours = analysis::analyze_risk_ours(base_vec, ours_vec, theirs_vec);
+            conflict.risk_theirs = analysis::analyze_risk_theirs(base_vec, ours_vec, theirs_vec);
+            conflict.risk_both = analysis::analyze_risk_both(base_vec, ours_vec, theirs_vec);
             
             result.conflicts.push_back(conflict);
             

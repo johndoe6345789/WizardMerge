@@ -101,6 +101,65 @@ void MergeController::merge(
         }
         conflictObj["their_lines"] = theirLines;
         
+        // Add context analysis
+        Json::Value contextObj;
+        contextObj["function_name"] = conflict.context.function_name;
+        contextObj["class_name"] = conflict.context.class_name;
+        Json::Value importsArray(Json::arrayValue);
+        for (const auto& import : conflict.context.imports) {
+            importsArray.append(import);
+        }
+        contextObj["imports"] = importsArray;
+        conflictObj["context"] = contextObj;
+        
+        // Add risk analysis for "ours" resolution
+        Json::Value riskOursObj;
+        riskOursObj["level"] = wizardmerge::analysis::risk_level_to_string(conflict.risk_ours.level);
+        riskOursObj["confidence_score"] = conflict.risk_ours.confidence_score;
+        Json::Value riskFactorsOurs(Json::arrayValue);
+        for (const auto& factor : conflict.risk_ours.risk_factors) {
+            riskFactorsOurs.append(factor);
+        }
+        riskOursObj["risk_factors"] = riskFactorsOurs;
+        Json::Value recommendationsOurs(Json::arrayValue);
+        for (const auto& rec : conflict.risk_ours.recommendations) {
+            recommendationsOurs.append(rec);
+        }
+        riskOursObj["recommendations"] = recommendationsOurs;
+        conflictObj["risk_ours"] = riskOursObj;
+        
+        // Add risk analysis for "theirs" resolution
+        Json::Value riskTheirsObj;
+        riskTheirsObj["level"] = wizardmerge::analysis::risk_level_to_string(conflict.risk_theirs.level);
+        riskTheirsObj["confidence_score"] = conflict.risk_theirs.confidence_score;
+        Json::Value riskFactorsTheirs(Json::arrayValue);
+        for (const auto& factor : conflict.risk_theirs.risk_factors) {
+            riskFactorsTheirs.append(factor);
+        }
+        riskTheirsObj["risk_factors"] = riskFactorsTheirs;
+        Json::Value recommendationsTheirs(Json::arrayValue);
+        for (const auto& rec : conflict.risk_theirs.recommendations) {
+            recommendationsTheirs.append(rec);
+        }
+        riskTheirsObj["recommendations"] = recommendationsTheirs;
+        conflictObj["risk_theirs"] = riskTheirsObj;
+        
+        // Add risk analysis for "both" resolution
+        Json::Value riskBothObj;
+        riskBothObj["level"] = wizardmerge::analysis::risk_level_to_string(conflict.risk_both.level);
+        riskBothObj["confidence_score"] = conflict.risk_both.confidence_score;
+        Json::Value riskFactorsBoth(Json::arrayValue);
+        for (const auto& factor : conflict.risk_both.risk_factors) {
+            riskFactorsBoth.append(factor);
+        }
+        riskBothObj["risk_factors"] = riskFactorsBoth;
+        Json::Value recommendationsBoth(Json::arrayValue);
+        for (const auto& rec : conflict.risk_both.recommendations) {
+            recommendationsBoth.append(rec);
+        }
+        riskBothObj["recommendations"] = recommendationsBoth;
+        conflictObj["risk_both"] = riskBothObj;
+        
         conflictsArray.append(conflictObj);
     }
     response["conflicts"] = conflictsArray;
