@@ -12,10 +12,19 @@ find_package(GTest QUIET)
 find_package(CURL QUIET)
 
 # Library sources
-add_library(wizardmerge
+set(WIZARDMERGE_SOURCES
     src/merge/three_way_merge.cpp
-    src/git/github_client.cpp
 )
+
+# Add git sources only if CURL is available
+if(CURL_FOUND)
+    list(APPEND WIZARDMERGE_SOURCES src/git/github_client.cpp)
+    message(STATUS "CURL found - including GitHub API client")
+else()
+    message(WARNING "CURL not found - GitHub API features will be unavailable")
+endif()
+
+add_library(wizardmerge ${WIZARDMERGE_SOURCES})
 
 target_include_directories(wizardmerge
     PUBLIC
@@ -30,11 +39,18 @@ endif()
 
 # Executable (only if Drogon is found)
 if(Drogon_FOUND)
-    add_executable(wizardmerge-cli
+    set(CLI_SOURCES
         src/main.cpp
         src/controllers/MergeController.cc
-        src/controllers/PRController.cc
     )
+    
+    # Add PR controller only if CURL is available
+    if(CURL_FOUND)
+        list(APPEND CLI_SOURCES src/controllers/PRController.cc)
+        message(STATUS "CURL found - including PR resolution endpoint")
+    endif()
+    
+    add_executable(wizardmerge-cli ${CLI_SOURCES})
 
     target_link_libraries(wizardmerge-cli PRIVATE wizardmerge Drogon::Drogon)
     
@@ -50,10 +66,15 @@ endif()
 # Tests (if GTest is available)
 if(GTest_FOUND)
     enable_testing()
-    add_executable(wizardmerge-tests
-        tests/test_three_way_merge.cpp
-        tests/test_github_client.cpp
-    )
+    
+    set(TEST_SOURCES tests/test_three_way_merge.cpp)
+    
+    # Add github client tests only if CURL is available
+    if(CURL_FOUND)
+        list(APPEND TEST_SOURCES tests/test_github_client.cpp)
+    endif()
+    
+    add_executable(wizardmerge-tests ${TEST_SOURCES})
     target_link_libraries(wizardmerge-tests PRIVATE wizardmerge GTest::gtest_main)
     
     include(GoogleTest)

@@ -20,10 +20,16 @@ if ! pkg-config --exists drogon 2>/dev/null && ! ldconfig -p 2>/dev/null | grep 
     echo "  Option 2: Use Docker: docker-compose up --build"
     echo "  Option 3: Use Conan: conan install . --output-folder=build --build=missing"
     echo
-    read -p "Continue building without Drogon? (y/n) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
+    
+    # Skip prompt if in non-interactive mode or CI
+    if [[ -n "$CI" ]] || [[ -n "$WIZARDMERGE_AUTO_BUILD" ]] || [[ ! -t 0 ]]; then
+        echo "Non-interactive mode detected, continuing without Drogon..."
+    else
+        read -p "Continue building without Drogon? (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
     fi
 fi
 

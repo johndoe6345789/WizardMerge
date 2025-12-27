@@ -15,7 +15,12 @@ WizardMerge uses a multi-frontend architecture with a high-performance C++ backe
 - **Build System**: CMake + Ninja
 - **Package Manager**: Conan
 - **Web Framework**: Drogon
-- **Features**: Three-way merge algorithm, conflict detection, auto-resolution, HTTP API
+- **Features**: 
+  - Three-way merge algorithm
+  - Conflict detection and auto-resolution
+  - HTTP API endpoints
+  - GitHub Pull Request integration
+  - Pull request conflict resolution
 
 ### Frontends
 
@@ -95,6 +100,45 @@ ninja
 ```
 
 See [frontends/cli/README.md](frontends/cli/README.md) for details.
+
+## Pull Request Conflict Resolution
+
+WizardMerge can automatically resolve conflicts in GitHub pull requests using advanced merge algorithms.
+
+### Using the CLI
+
+```sh
+# Resolve conflicts in a pull request
+./wizardmerge-cli-frontend pr-resolve --url https://github.com/owner/repo/pull/123
+
+# With GitHub token for private repos
+./wizardmerge-cli-frontend pr-resolve --url https://github.com/owner/repo/pull/123 --token ghp_xxx
+
+# Or use environment variable
+export GITHUB_TOKEN=ghp_xxx
+./wizardmerge-cli-frontend pr-resolve --url https://github.com/owner/repo/pull/123
+```
+
+### Using the HTTP API
+
+```sh
+# POST /api/pr/resolve
+curl -X POST http://localhost:8080/api/pr/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pr_url": "https://github.com/owner/repo/pull/123",
+    "github_token": "ghp_xxx",
+    "create_branch": true,
+    "branch_name": "wizardmerge-resolved-pr-123"
+  }'
+```
+
+The API will:
+1. Parse the PR URL and fetch PR metadata from GitHub
+2. Retrieve base and head versions of all modified files
+3. Apply the three-way merge algorithm to each file
+4. Auto-resolve conflicts using heuristics
+5. Return merged content with conflict status
 
 ## Research Foundation
 
