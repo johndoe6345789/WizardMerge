@@ -36,7 +36,7 @@ jobs:
             # Run clang-format in check mode (dry-run)
             find backend frontends/qt6 frontends/cli -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | \
               xargs clang-format --dry-run --Werror || \
-              (echo "C++ code formatting issues found. Run 'clang-format -i' on the files." && exit 0)
+              (echo "❌ C++ code formatting issues found. Run 'clang-format -i' on the files." && exit 1)
           else
             echo "No C++ files found to check."
           fi
@@ -58,7 +58,7 @@ jobs:
         working-directory: frontends/nextjs
         run: |
           # Run TypeScript compiler check
-          bun run tsc --noEmit || echo "TypeScript check completed with warnings"
+          bun run tsc --noEmit
 
   lint-python:
     name: Lint Python Code
@@ -79,7 +79,7 @@ jobs:
           # Check if there are any Python files
           if find scripts -name "*.py" | grep -q .; then
             echo "Linting Python code..."
-            ruff check scripts/ || echo "Linting completed with warnings"
+            ruff check scripts/
           else
             echo "No Python files found to lint."
           fi
