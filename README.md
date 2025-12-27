@@ -1,5 +1,8 @@
 # WizardMerge
 
+[![Gated Tree CI/CD](https://github.com/johndoe6345789/WizardMerge/actions/workflows/ci.yml/badge.svg)](https://github.com/johndoe6345789/WizardMerge/actions/workflows/ci.yml)
+[![TLC Verification](https://github.com/johndoe6345789/WizardMerge/actions/workflows/tlc.yml/badge.svg)](https://github.com/johndoe6345789/WizardMerge/actions/workflows/tlc.yml)
+
 **Intelligent Merge Conflict Resolution**
 
 SEE ALSO: https://github.com/JohnDoe6345789/mergebot
