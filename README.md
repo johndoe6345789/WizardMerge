@@ -163,6 +163,20 @@ The API will:
 - **GitLab**: Use personal access tokens with `read_api` and `read_repository` scopes
 - Tokens can be passed via `--token` flag or environment variables (`GITHUB_TOKEN`, `GITLAB_TOKEN`)
 
+## Formal Verification
+
+WizardMerge includes a formal TLA+ specification that is verified in CI:
+- **Specification**: [spec/WizardMergeSpec.tla](spec/WizardMergeSpec.tla)
+- **CI Workflow**: `.github/workflows/tlc.yml`
+- **Verification Script**: `scripts/tlaplus.py`
+
+The specification is automatically checked on every push to ensure:
+- Syntax correctness
+- Module structure validity  
+- Type checking of invariants and temporal properties
+
+See [scripts/README.md](scripts/README.md) for details on running the verification locally.
+
 ## Research Foundation
 
 WizardMerge is based on research from The University of Hong Kong achieving:
