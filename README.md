@@ -147,6 +147,16 @@ curl -X POST http://localhost:8080/api/pr/resolve \
     "pr_url": "https://gitlab.com/owner/repo/-/merge_requests/456",
     "api_token": "glpat-xxx"
   }'
+
+# With branch creation (requires Git CLI)
+curl -X POST http://localhost:8080/api/pr/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pr_url": "https://github.com/owner/repo/pull/123",
+    "api_token": "ghp_xxx",
+    "create_branch": true,
+    "branch_name": "wizardmerge-resolved-pr-123"
+  }'
 ```
 
 The API will:
@@ -155,7 +165,43 @@ The API will:
 3. Retrieve base and head versions of all modified files
 4. Apply the three-way merge algorithm to each file
 5. Auto-resolve conflicts using heuristics
-6. Return merged content with conflict status
+6. Optionally create a new branch with resolved changes (if `create_branch: true` and Git CLI available)
+7. Return merged content with conflict status
+
+### Git CLI Integration
+
+WizardMerge includes Git CLI integration for advanced workflows:
+
+**Features:**
+- Clone repositories locally
+- Create and checkout branches
+- Stage and commit resolved changes
+- Push branches to remote repositories
+
+**Branch Creation Workflow:**
+
+When `create_branch: true` is set in the API request:
+1. Repository is cloned to a temporary directory
+2. New branch is created from the PR base branch
+3. Resolved files are written to the working directory
+4. Changes are staged and committed
+5. Branch path is returned in the response
+
+**Requirements:**
+- Git CLI must be installed and available in system PATH
+- For pushing to remote, Git credentials must be configured (SSH keys or credential helpers)
+
+**Example Response with Branch Creation:**
+```json
+{
+  "success": true,
+  "branch_created": true,
+  "branch_name": "wizardmerge-resolved-pr-123",
+  "branch_path": "/tmp/wizardmerge_pr_123_1234567890",
+  "note": "Branch created successfully. Push to remote with: git -C /tmp/wizardmerge_pr_123_1234567890 push origin wizardmerge-resolved-pr-123",
+  ...
+}
+```
 
 ### Authentication
 
