@@ -125,8 +125,13 @@ void PRController::resolvePR(
             std::vector<std::string> head_content = head_opt.value();
 
             // For added files or when there might be a conflict with existing file
-            // We use the current head as "ours" and try to merge with base
-            // This is simplified - in reality, we'd need to detect actual merge conflicts
+            // Note: This is a simplified merge for PR review purposes.
+            // In a real merge scenario with conflicts, you'd need the merge-base commit.
+            // Here we're showing what changes if we accept the head version:
+            //   - base: common ancestor (PR base)
+            //   - ours: current state (PR base)  
+            //   - theirs: proposed changes (PR head)
+            // This effectively shows all changes from the PR head.
             
             // Perform three-way merge: base, ours (base), theirs (head)
             auto merge_result = three_way_merge(base_content, base_content, head_content);

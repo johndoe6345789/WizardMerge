@@ -20,8 +20,6 @@ namespace git {
 struct PRFile {
     std::string filename;
     std::string status;  // "added", "modified", "removed", "renamed"
-    std::string base_content;
-    std::string head_content;
     int additions;
     int deletions;
     int changes;

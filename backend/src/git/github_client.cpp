@@ -7,11 +7,40 @@
 #include <regex>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 #include <curl/curl.h>
 #include <json/json.h>
 
 namespace wizardmerge {
 namespace git {
+
+namespace {
+
+/**
+ * @brief Simple base64 decoder
+ */
+std::string base64_decode(const std::string& encoded) {
+    static const std::string base64_chars = 
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789+/";
+    
+    std::string decoded;
+    std::vector<int> T(256, -1);
+    for (int i = 0; i < 64; i++) T[base64_chars[i]] = i;
+    
+    int val = 0, valb = -8;
+    for (unsigned char c : encoded) {
+        if (T[c] == -1) break;
+        val = (val << 6) + T[c];
+        valb += 6;
+        if (valb >= 0) {
+            decoded.push_back(char((val >> valb) & 0xFF));
+            valb -= 8;
+        }
+    }
+    return decoded;
+}
 
 namespace {
 
@@ -228,26 +257,13 @@ std::optional<std::vector<std::string>> fetch_file_content(
     encoded_content.erase(std::remove(encoded_content.begin(), encoded_content.end(), '\n'), encoded_content.end());
     encoded_content.erase(std::remove(encoded_content.begin(), encoded_content.end(), '\r'), encoded_content.end());
     
-    // Simple base64 decode (using curl's built-in decoder)
-    CURL* curl = curl_easy_init();
-    if (!curl) {
-        return std::nullopt;
-    }
+    // Decode base64
+    std::string decoded_content = base64_decode(encoded_content);
     
-    int outlen;
-    unsigned char* decoded = curl_easy_unescape(curl, encoded_content.c_str(), encoded_content.length(), &outlen);
-    
-    if (!decoded) {
-        // Fallback: try manual base64 decode
-        // For now, return empty as we need proper base64 decoder
-        curl_easy_cleanup(curl);
+    if (decoded_content.empty()) {
         std::cerr << "Failed to decode base64 content" << std::endl;
         return std::nullopt;
     }
-    
-    std::string decoded_content(reinterpret_cast<char*>(decoded), outlen);
-    curl_free(decoded);
-    curl_easy_cleanup(curl);
     
     // Split content into lines
     return split_lines(decoded_content);
