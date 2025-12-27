@@ -12,6 +12,8 @@
 
 #include <string>
 #include <vector>
+#include "wizardmerge/analysis/context_analyzer.h"
+#include "wizardmerge/analysis/risk_analyzer.h"
 
 namespace wizardmerge {
 namespace merge {
@@ -33,6 +35,12 @@ struct Conflict {
     std::vector<Line> base_lines;
     std::vector<Line> our_lines;
     std::vector<Line> their_lines;
+    
+    // Context and risk analysis
+    analysis::CodeContext context;
+    analysis::RiskAssessment risk_ours;
+    analysis::RiskAssessment risk_theirs;
+    analysis::RiskAssessment risk_both;
 };
 
 /**
