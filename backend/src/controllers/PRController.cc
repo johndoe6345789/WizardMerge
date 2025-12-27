@@ -5,9 +5,11 @@
 
 #include "PRController.h"
 #include "wizardmerge/git/git_platform_client.h"
+#include "wizardmerge/git/git_cli.h"
 #include "wizardmerge/merge/three_way_merge.h"
 #include <json/json.h>
 #include <iostream>
+#include <filesystem>
 
 using namespace wizardmerge::controllers;
 using namespace wizardmerge::git;
@@ -180,15 +182,115 @@ void PRController::resolvePR(
     response["resolved_count"] = resolved_files;
     response["failed_count"] = failed_files;
     
-    // Branch creation would require Git CLI access
-    // For now, just report what would be done
+    // Branch creation with Git CLI
     response["branch_created"] = false;
     if (create_branch) {
         if (branch_name.empty()) {
             branch_name = "wizardmerge-resolved-pr-" + std::to_string(pr_number);
         }
         response["branch_name"] = branch_name;
-        response["note"] = "Branch creation requires Git CLI integration (not yet implemented)";
+        
+        // Check if Git CLI is available
+        if (!is_git_available()) {
+            response["note"] = "Git CLI not available - branch creation skipped";
+        } else {
+            // Clone repository to temporary location
+            std::filesystem::path temp_base = std::filesystem::temp_directory_path();
+            std::string temp_dir = (temp_base / ("wizardmerge_pr_" + std::to_string(pr_number) + "_" + 
+                                   std::to_string(std::time(nullptr)))).string();
+            
+            // Build repository URL
+            std::string repo_url;
+            if (platform == GitPlatform::GitHub) {
+                repo_url = "https://github.com/" + owner + "/" + repo + ".git";
+            } else if (platform == GitPlatform::GitLab) {
+                std::string project_path = owner;
+                if (!repo.empty()) {
+                    project_path += "/" + repo;
+                }
+                repo_url = "https://gitlab.com/" + project_path + ".git";
+            }
+            
+            // Clone the repository
+            auto clone_result = clone_repository(repo_url, temp_dir, pr.base_ref);
+            
+            if (!clone_result.success) {
+                response["note"] = "Failed to clone repository: " + clone_result.error;
+            } else {
+                // Create new branch (without base_branch parameter since we cloned from base_ref)
+                auto branch_result = create_branch(temp_dir, branch_name);
+                
+                if (!branch_result.success) {
+                    response["note"] = "Failed to create branch: " + branch_result.error;
+                    std::filesystem::remove_all(temp_dir);
+                } else {
+                    // Write resolved files
+                    bool all_files_written = true;
+                    for (const auto& file : resolved_files_array) {
+                        if (file.isMember("merged_content") && file["merged_content"].isArray()) {
+                            std::string file_path = temp_dir + "/" + file["filename"].asString();
+                            
+                            // Create parent directories
+                            std::filesystem::path file_path_obj(file_path);
+                            std::filesystem::create_directories(file_path_obj.parent_path());
+                            
+                            // Write merged content
+                            std::ofstream out_file(file_path);
+                            if (out_file.is_open()) {
+                                for (const auto& line : file["merged_content"]) {
+                                    out_file << line.asString() << "\n";
+                                }
+                                out_file.close();
+                            } else {
+                                all_files_written = false;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!all_files_written) {
+                        response["note"] = "Failed to write some resolved files";
+                        std::filesystem::remove_all(temp_dir);
+                    } else {
+                        // Stage and commit changes
+                        std::vector<std::string> file_paths;
+                        for (const auto& file : resolved_files_array) {
+                            if (file.isMember("filename")) {
+                                file_paths.push_back(file["filename"].asString());
+                            }
+                        }
+                        
+                        auto add_result = add_files(temp_dir, file_paths);
+                        if (!add_result.success) {
+                            response["note"] = "Failed to stage files: " + add_result.error;
+                            std::filesystem::remove_all(temp_dir);
+                        } else {
+                            GitConfig git_config;
+                            git_config.user_name = "WizardMerge Bot";
+                            git_config.user_email = "wizardmerge@example.com";
+                            git_config.auth_token = api_token;
+                            
+                            std::string commit_message = "Resolve conflicts for PR #" + std::to_string(pr_number);
+                            auto commit_result = commit(temp_dir, commit_message, git_config);
+                            
+                            if (!commit_result.success) {
+                                response["note"] = "Failed to commit changes: " + commit_result.error;
+                                std::filesystem::remove_all(temp_dir);
+                            } else {
+                                response["branch_created"] = true;
+                                response["branch_path"] = temp_dir;
+                                response["note"] = "Branch created successfully. Push to remote with: git -C " + 
+                                                 temp_dir + " push origin " + branch_name;
+                                
+                                // Note: Pushing requires authentication setup
+                                // For security, we don't push automatically with token in URL
+                                // Users should configure Git credentials or use SSH keys
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     auto resp = HttpResponse::newHttpJsonResponse(response);
