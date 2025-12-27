@@ -245,3 +245,7 @@ frontends/nextjs/out/
 frontends/nextjs/.turbo/
 frontends/nextjs/.vercel/
 frontends/nextjs/bun.lockb
+
+# TLA+ tools and CI results
+.tlaplus/
+ci-results/
