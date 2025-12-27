@@ -174,7 +174,7 @@ ASSUME
            - If v ∈ V_A (applied) then Mi(v) ∈ V_N (not applied), and vice versa.
            - If v ∈ V_C (conflict) then Mi(v) ∈ V_C as well.
        *)
-       (v \in AppliedSet)  <=>  (Mirror[v] \in NotAppliedSet)
+       /\ (v \in AppliedSet)  <=>  (Mirror[v] \in NotAppliedSet)
        /\ (v \in ConflictSet) <=> (Mirror[v] \in ConflictSet)
 
 (***************************************************************************)
@@ -432,7 +432,7 @@ PR_Complete ==
 *)
 PR_SuccessRate ==
   LET successful == {f \in PR_FILES : PR_MergeResults[f] = "success"}
-  IN  Cardinality(successful) * 100 \div Cardinality(PR_FILES)
+  IN  (Cardinality(successful) * 100) \div Cardinality(PR_FILES)
 
 (*
   PR resolution quality property: a "good" PR resolution is one where
