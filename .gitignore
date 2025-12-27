@@ -236,3 +236,12 @@ frontend/out/
 frontend/.turbo/
 frontend/.vercel/
 frontend/bun.lockb
+
+# Frontends
+frontends/*/build/
+frontends/nextjs/node_modules/
+frontends/nextjs/.next/
+frontends/nextjs/out/
+frontends/nextjs/.turbo/
+frontends/nextjs/.vercel/
+frontends/nextjs/bun.lockb

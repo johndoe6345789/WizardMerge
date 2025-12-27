@@ -17,11 +17,26 @@ WizardMerge uses a multi-frontend architecture with a high-performance C++ backe
 - **Web Framework**: Drogon
 - **Features**: Three-way merge algorithm, conflict detection, auto-resolution, HTTP API
 
-### Frontend (TypeScript/Next.js)
-- **Location**: `frontend/`
+### Frontends
+
+WizardMerge provides three frontend options to suit different workflows:
+
+#### Qt6 Native Desktop (C++)
+- **Location**: `frontends/qt6/`
+- **Framework**: Qt6 with QML
+- **Features**: Native desktop application, offline capability, high performance
+- **Platforms**: Linux, Windows, macOS
+
+#### Next.js Web UI (TypeScript)
+- **Location**: `frontends/nextjs/`
 - **Runtime**: bun
 - **Framework**: Next.js 14
-- **Features**: Web-based UI for conflict resolution
+- **Features**: Web-based UI, real-time collaboration, cross-platform access
+
+#### CLI (C++)
+- **Location**: `frontends/cli/`
+- **Features**: Command-line interface, automation support, scripting integration
+- **Use Cases**: Batch processing, CI/CD pipelines, terminal workflows
 
 ## Roadmap
 See [ROADMAP.md](ROADMAP.md) for our vision and development plan. The roadmap covers:
@@ -38,19 +53,48 @@ See [ROADMAP.md](ROADMAP.md) for our vision and development plan. The roadmap co
 ```sh
 cd backend
 ./build.sh
+./build/wizardmerge-cli
 ```
 
-See [backend/README.md](backend/README.md) for details.
+The backend server will start on port 8080. See [backend/README.md](backend/README.md) for details.
 
-### TypeScript Frontend
+### Frontends
+
+Choose the frontend that best fits your workflow:
+
+#### Qt6 Desktop Application
 
 ```sh
-cd frontend
+cd frontends/qt6
+mkdir build && cd build
+cmake .. -G Ninja
+ninja
+./wizardmerge-qt6
+```
+
+See [frontends/qt6/README.md](frontends/qt6/README.md) for details.
+
+#### Next.js Web UI
+
+```sh
+cd frontends/nextjs
 bun install
 bun run dev
 ```
 
-See [frontend/README.md](frontend/README.md) for details.
+Visit http://localhost:3000. See [frontends/nextjs/README.md](frontends/nextjs/README.md) for details.
+
+#### CLI
+
+```sh
+cd frontends/cli
+mkdir build && cd build
+cmake .. -G Ninja
+ninja
+./wizardmerge-cli-frontend --help
+```
+
+See [frontends/cli/README.md](frontends/cli/README.md) for details.
 
 ## Research Foundation
 
