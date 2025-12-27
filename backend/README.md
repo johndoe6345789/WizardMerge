@@ -124,6 +124,8 @@ backend/
 - Auto-resolution of common patterns
 - HTTP API server using Drogon framework
 - JSON-based request/response
+- GitHub Pull Request integration (Phase 1.2)
+- Pull request conflict resolution via API
 
 ## API Usage
 
@@ -167,6 +169,58 @@ curl -X POST http://localhost:8080/api/merge \
     "theirs": ["line1", "line2_theirs", "line3"]
   }'
 ```
+
+### POST /api/pr/resolve
+
+Resolve conflicts in a GitHub pull request.
+
+**Request:**
+```json
+{
+  "pr_url": "https://github.com/owner/repo/pull/123",
+  "github_token": "ghp_xxx",
+  "create_branch": true,
+  "branch_name": "wizardmerge-resolved-pr-123"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "pr_info": {
+    "number": 123,
+    "title": "Feature: Add new functionality",
+    "base_ref": "main",
+    "head_ref": "feature-branch",
+    "mergeable": false
+  },
+  "resolved_files": [
+    {
+      "filename": "src/example.cpp",
+      "status": "modified",
+      "had_conflicts": true,
+      "auto_resolved": true,
+      "merged_content": ["line1", "line2", "..."]
+    }
+  ],
+  "total_files": 5,
+  "resolved_count": 4,
+  "failed_count": 0
+}
+```
+
+**Example with curl:**
+```sh
+curl -X POST http://localhost:8080/api/pr/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pr_url": "https://github.com/owner/repo/pull/123",
+    "github_token": "ghp_xxx"
+  }'
+```
+
+**Note:** Requires libcurl to be installed. The GitHub token is optional for public repositories but required for private ones.
 
 ## Deployment
 

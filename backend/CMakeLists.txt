@@ -9,11 +9,22 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Find dependencies via Conan
 find_package(Drogon CONFIG QUIET)
 find_package(GTest QUIET)
+find_package(CURL QUIET)
 
 # Library sources
-add_library(wizardmerge
+set(WIZARDMERGE_SOURCES
     src/merge/three_way_merge.cpp
 )
+
+# Add git sources only if CURL is available
+if(CURL_FOUND)
+    list(APPEND WIZARDMERGE_SOURCES src/git/git_platform_client.cpp)
+    message(STATUS "CURL found - including Git platform API client (GitHub & GitLab)")
+else()
+    message(WARNING "CURL not found - Git platform API features will be unavailable")
+endif()
+
+add_library(wizardmerge ${WIZARDMERGE_SOURCES})
 
 target_include_directories(wizardmerge
     PUBLIC
@@ -21,12 +32,25 @@ target_include_directories(wizardmerge
         $<INSTALL_INTERFACE:include>
 )
 
+# Link CURL if available
+if(CURL_FOUND)
+    target_link_libraries(wizardmerge PUBLIC CURL::libcurl)
+endif()
+
 # Executable (only if Drogon is found)
 if(Drogon_FOUND)
-    add_executable(wizardmerge-cli
+    set(CLI_SOURCES
         src/main.cpp
         src/controllers/MergeController.cc
     )
+    
+    # Add PR controller only if CURL is available
+    if(CURL_FOUND)
+        list(APPEND CLI_SOURCES src/controllers/PRController.cc)
+        message(STATUS "CURL found - including PR resolution endpoint")
+    endif()
+    
+    add_executable(wizardmerge-cli ${CLI_SOURCES})
 
     target_link_libraries(wizardmerge-cli PRIVATE wizardmerge Drogon::Drogon)
     
@@ -42,9 +66,15 @@ endif()
 # Tests (if GTest is available)
 if(GTest_FOUND)
     enable_testing()
-    add_executable(wizardmerge-tests
-        tests/test_three_way_merge.cpp
-    )
+    
+    set(TEST_SOURCES tests/test_three_way_merge.cpp)
+    
+    # Add github client tests only if CURL is available
+    if(CURL_FOUND)
+        list(APPEND TEST_SOURCES tests/test_git_platform_client.cpp)
+    endif()
+    
+    add_executable(wizardmerge-tests ${TEST_SOURCES})
     target_link_libraries(wizardmerge-tests PRIVATE wizardmerge GTest::gtest_main)
     
     include(GoogleTest)

@@ -15,6 +15,12 @@ EXTENDS Naturals, FiniteSets
     * Identical changes from both sides
     * Whitespace-only differences
   - Command-line interface (wizardmerge-cli)
+  - Pull request/merge request URL processing and conflict resolution:
+    * Parse GitHub PR URLs and GitLab MR URLs
+    * Fetch PR/MR data via GitHub and GitLab APIs
+    * Apply merge algorithm to PR/MR files
+    * HTTP API endpoint for PR/MR resolution
+    * Support for multiple git platforms (GitHub and GitLab)
   
   NOT YET IMPLEMENTED (Future phases):
   - Dependency graph construction (SDG analysis)
@@ -22,11 +28,32 @@ EXTENDS Naturals, FiniteSets
   - Edge classification (safe vs. violated)
   - Fine-grained DCB (Definition-Code Block) tracking
   - Mirror mapping and matching
+  - Git branch creation for resolved PRs/MRs
+  - Support for additional platforms (Bitbucket, etc.)
   
   The current implementation in backend/src/merge/three_way_merge.cpp provides
   a foundation for the full dependency-aware algorithm specified here. Future
   phases will enhance it with the SDG analysis, edge classification, and
   dependency-aware conflict resolution described in this specification.
+  
+  PR/MR Resolution Workflow (Phase 1.2):
+  The PR/MR resolution feature extends the core merge algorithm to work with
+  both GitHub pull requests and GitLab merge requests. The workflow is:
+    1. Accept PR/MR URL: Parse URL to detect platform and extract owner, repo, and number
+    2. Fetch PR/MR metadata: Use platform-specific API to retrieve information
+    3. Fetch file versions: Retrieve base and head versions of modified files
+    4. Apply merge algorithm: For each file, perform three-way merge
+    5. Auto-resolve conflicts: Apply heuristic resolution where possible
+    6. Return results: Provide merged content and conflict status
+  
+  Platform Support:
+    - GitHub: Uses GitHub API v3 with "Authorization: token" header
+    - GitLab: Uses GitLab API v4 with "PRIVATE-TOKEN" header
+    - Both platforms support public and private repositories with proper authentication
+  
+  This workflow enables batch processing of PR/MR conflicts using the same
+  dependency-aware merge principles, with future integration planned for
+  automatic branch creation and PR/MR updates.
 *)
 
 (*
@@ -315,5 +342,113 @@ Inv ==
   EdgePartitionInvariant
 
 THEOREM Spec => []Inv
+
+(***************************************************************************)
+(* Pull Request/Merge Request Resolution Specification (Phase 1.2)        *)
+(***************************************************************************)
+
+(*
+  This section extends the core merge specification to model the PR/MR resolution
+  workflow. It describes how WizardMerge processes GitHub pull requests and
+  GitLab merge requests to identify and resolve conflicts across multiple files.
+  
+  Supported Platforms:
+    - GitHub: Uses "pull request" terminology with "/pull/" URL path
+    - GitLab: Uses "merge request" terminology with "/-/merge_requests/" URL path
+*)
+
+CONSTANTS
+  (*
+    GitPlatform: the platform type - GitHub or GitLab
+  *)
+  GitPlatform,
+  
+  (*
+    PR_FILES: the set of all files in the pull/merge request
+  *)
+  PR_FILES,
+  
+  (*
+    FileStatus: maps each file to its modification status in the PR/MR
+    Possible values: "modified", "added", "removed", "renamed"
+  *)
+  FileStatus,
+  
+  (*
+    BaseSHA, HeadSHA: commit identifiers for base and head of the PR/MR
+  *)
+  BaseSHA, HeadSHA
+
+(*
+  Platform types - GitHub uses pull requests, GitLab uses merge requests
+*)
+ASSUME GitPlatform \in {"GitHub", "GitLab"}
+
+(*
+  A file is resolvable if it was modified (not removed) and we can fetch
+  both its base and head versions.
+*)
+Resolvable(f) ==
+  FileStatus[f] \in {"modified", "added"}
+
+(*
+  PR_MergeResult: for each file f in PR_FILES, we compute a merge result
+  using the three-way merge algorithm. This is a function from PR_FILES
+  to merge outcomes.
+  
+  Possible outcomes:
+    - "success": file merged without conflicts
+    - "conflict": file has unresolved conflicts
+    - "error": failed to fetch or process file
+    - "skipped": file was removed or not applicable
+*)
+
+VARIABLE PR_MergeResults
+
+PR_Init ==
+  PR_MergeResults = [f \in PR_FILES |-> "pending"]
+
+(*
+  Process a single file by applying the three-way merge algorithm.
+  This abstracts the actual merge computation but captures the key decision:
+  whether the file can be auto-resolved or requires manual intervention.
+*)
+ProcessFile(f) ==
+  /\ PR_MergeResults[f] = "pending"
+  /\ IF ~Resolvable(f)
+     THEN PR_MergeResults' = [PR_MergeResults EXCEPT ![f] = "skipped"]
+     ELSE \/ PR_MergeResults' = [PR_MergeResults EXCEPT ![f] = "success"]
+          \/ PR_MergeResults' = [PR_MergeResults EXCEPT ![f] = "conflict"]
+          \/ PR_MergeResults' = [PR_MergeResults EXCEPT ![f] = "error"]
+
+(*
+  PR completion: all files have been processed
+*)
+PR_Complete ==
+  \A f \in PR_FILES : PR_MergeResults[f] # "pending"
+
+(*
+  PR success metric: percentage of files successfully merged
+*)
+PR_SuccessRate ==
+  LET successful == {f \in PR_FILES : PR_MergeResults[f] = "success"}
+  IN  Cardinality(successful) * 100 \div Cardinality(PR_FILES)
+
+(*
+  PR resolution quality property: a "good" PR resolution is one where
+  all resolvable files are either successfully merged or marked as conflicts
+  (no errors in fetching or processing).
+*)
+GoodPRResolution ==
+  \A f \in PR_FILES :
+    Resolvable(f) => PR_MergeResults[f] \in {"success", "conflict"}
+
+PR_Spec ==
+  PR_Init /\ [][(\E f \in PR_FILES : ProcessFile(f))]_<<PR_MergeResults>>
+
+PR_Invariant ==
+  PR_Complete => GoodPRResolution
+
+THEOREM PR_Spec => []PR_Invariant
 
 =============================================================================
