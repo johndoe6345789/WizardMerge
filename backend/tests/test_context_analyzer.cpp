@@ -127,3 +127,94 @@ TEST(ContextAnalyzerTest, ContextWindowBoundaries) {
     context = analyze_context(lines, 4, 4, 2);
     EXPECT_GE(context.surrounding_lines.size(), 1);
 }
+
+/**
+ * Test TypeScript function detection
+ */
+TEST(ContextAnalyzerTest, TypeScriptFunctionDetection) {
+    std::vector<std::string> lines = {
+        "export async function fetchData() {",
+        "    const data = await api.get();",
+        "    return data;",
+        "}"
+    };
+    
+    std::string func_name = extract_function_name(lines, 1);
+    EXPECT_EQ(func_name, "fetchData");
+}
+
+/**
+ * Test TypeScript arrow function detection
+ */
+TEST(ContextAnalyzerTest, TypeScriptArrowFunctionDetection) {
+    std::vector<std::string> lines = {
+        "const handleClick = (event: MouseEvent) => {",
+        "    console.log(event);",
+        "};"
+    };
+    
+    std::string func_name = extract_function_name(lines, 0);
+    EXPECT_EQ(func_name, "handleClick");
+}
+
+/**
+ * Test TypeScript interface detection
+ */
+TEST(ContextAnalyzerTest, TypeScriptInterfaceDetection) {
+    std::vector<std::string> lines = {
+        "export interface User {",
+        "    id: number;",
+        "    name: string;",
+        "}"
+    };
+    
+    std::string class_name = extract_class_name(lines, 1);
+    EXPECT_EQ(class_name, "User");
+}
+
+/**
+ * Test TypeScript type alias detection
+ */
+TEST(ContextAnalyzerTest, TypeScriptTypeAliasDetection) {
+    std::vector<std::string> lines = {
+        "export type Status = 'pending' | 'approved' | 'rejected';",
+        "const status: Status = 'pending';"
+    };
+    
+    std::string type_name = extract_class_name(lines, 0);
+    EXPECT_EQ(type_name, "Status");
+}
+
+/**
+ * Test TypeScript enum detection
+ */
+TEST(ContextAnalyzerTest, TypeScriptEnumDetection) {
+    std::vector<std::string> lines = {
+        "enum Color {",
+        "    Red,",
+        "    Green,",
+        "    Blue",
+        "}"
+    };
+    
+    std::string enum_name = extract_class_name(lines, 1);
+    EXPECT_EQ(enum_name, "Color");
+}
+
+/**
+ * Test TypeScript import extraction
+ */
+TEST(ContextAnalyzerTest, TypeScriptImportExtraction) {
+    std::vector<std::string> lines = {
+        "import { Component } from 'react';",
+        "import type { User } from './types';",
+        "import * as utils from './utils';",
+        "",
+        "function MyComponent() {",
+        "    return null;",
+        "}"
+    };
+    
+    auto imports = extract_imports(lines);
+    EXPECT_GE(imports.size(), 3);
+}

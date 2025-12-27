@@ -19,8 +19,14 @@ Context analysis examines the code surrounding merge conflicts to provide better
 **Supported Languages:**
 - C/C++
 - Python
-- JavaScript/TypeScript
+- JavaScript/TypeScript (enhanced with TypeScript-specific patterns)
 - Java
+
+**TypeScript-Specific Features:**
+- Detects interfaces, types, and enums
+- Recognizes arrow functions and async functions
+- Identifies export statements
+- Extracts type imports and re-exports
 
 ### Risk Analysis
 
@@ -41,7 +47,15 @@ Risk analysis assesses different resolution strategies and provides recommendati
 - Large number of changes (>10 lines)
 - Critical code patterns (delete, eval, system calls, security operations)
 - API signature changes
+- TypeScript interface/type definition changes
+- TypeScript type safety bypasses (as any, @ts-ignore, @ts-nocheck)
+- XSS vulnerabilities (dangerouslySetInnerHTML, innerHTML)
+- Insecure storage of sensitive data
 - Discarding significant changes from other branch
+
+**Package Lock File Handling:**
+- Detects package-lock.json, yarn.lock, pnpm-lock.yaml, and bun.lockb files
+- Can be used to apply special merge strategies for dependency files
 
 **Provided Information:**
 - Risk level (low/medium/high/critical)
@@ -158,19 +172,75 @@ Key functions:
 - `analyze_risk_both()`: Assess risk of concatenation
 - `contains_critical_patterns()`: Detect security-critical code
 - `has_api_signature_changes()`: Detect API changes
+- `has_typescript_interface_changes()`: Detect TypeScript type definition changes
+- `is_package_lock_file()`: Identify package lock files
+
+### TypeScript Support
+
+The analyzers now include comprehensive TypeScript support:
+
+**Context Analyzer:**
+- Recognizes TypeScript function patterns (async, export, arrow functions)
+- Detects TypeScript type structures (interface, type, enum)
+- Extracts TypeScript imports (import type, export)
+
+**Risk Analyzer:**
+- Detects TypeScript-specific risks:
+  - Type safety bypasses: `as any`, `@ts-ignore`, `@ts-nocheck`
+  - React security issues: `dangerouslySetInnerHTML`
+  - XSS vulnerabilities: `innerHTML`
+  - Insecure storage: storing passwords in `localStorage`
+- Identifies interface/type definition changes
+- Recognizes package lock file conflicts
+
+**Example: TypeScript Interface Change Detection**
+```cpp
+std::vector<std::string> base = {
+    "interface User {",
+    "    name: string;",
+    "}"
+};
+std::vector<std::string> modified = {
+    "interface User {",
+    "    name: string;",
+    "    email: string;",
+    "}"
+};
+
+if (has_typescript_interface_changes(base, modified)) {
+    std::cout << "TypeScript interface changed!" << std::endl;
+}
+```
+
+**Example: Package Lock File Detection**
+```cpp
+std::string filename = "package-lock.json";
+if (is_package_lock_file(filename)) {
+    std::cout << "Applying special merge strategy for lock file" << std::endl;
+}
+```
 
 ## Testing
 
-Comprehensive test coverage with 24 unit tests:
-- 7 tests for context analyzer
-- 9 tests for risk analyzer
-- 8 existing merge tests
+Comprehensive test coverage with 46 unit tests:
+- 13 tests for context analyzer (including 6 TypeScript tests)
+- 16 tests for risk analyzer (including 7 TypeScript tests)
+- 8 tests for three-way merge
+- 9 tests for Git CLI
 
 Run tests:
 ```bash
 cd backend/build
 ./wizardmerge-tests
 ```
+
+TypeScript-specific tests verify:
+- Arrow function detection
+- Interface, type, and enum extraction
+- TypeScript import patterns
+- Type definition change detection
+- Critical pattern detection (as any, @ts-ignore, etc.)
+- Package lock file identification
 
 ## Security
 

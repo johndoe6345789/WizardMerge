@@ -138,3 +138,131 @@ TEST(RiskAnalyzerTest, RiskFactorsPopulated) {
     // Should have some analysis results
     EXPECT_TRUE(!risk.recommendations.empty() || !risk.risk_factors.empty());
 }
+
+/**
+ * Test TypeScript interface change detection
+ */
+TEST(RiskAnalyzerTest, TypeScriptInterfaceChangesDetected) {
+    std::vector<std::string> base = {
+        "interface User {",
+        "    name: string;",
+        "}"
+    };
+    std::vector<std::string> modified = {
+        "interface User {",
+        "    name: string;",
+        "    age: number;",
+        "}"
+    };
+    
+    EXPECT_TRUE(has_typescript_interface_changes(base, modified));
+}
+
+/**
+ * Test TypeScript type alias change detection
+ */
+TEST(RiskAnalyzerTest, TypeScriptTypeChangesDetected) {
+    std::vector<std::string> base = {
+        "type Status = 'pending' | 'approved';"
+    };
+    std::vector<std::string> modified = {
+        "type Status = 'pending' | 'approved' | 'rejected';"
+    };
+    
+    EXPECT_TRUE(has_typescript_interface_changes(base, modified));
+}
+
+/**
+ * Test TypeScript enum change detection
+ */
+TEST(RiskAnalyzerTest, TypeScriptEnumChangesDetected) {
+    std::vector<std::string> base = {
+        "enum Color {",
+        "    Red,",
+        "    Green",
+        "}"
+    };
+    std::vector<std::string> modified = {
+        "enum Color {",
+        "    Red,",
+        "    Green,",
+        "    Blue",
+        "}"
+    };
+    
+    EXPECT_TRUE(has_typescript_interface_changes(base, modified));
+}
+
+/**
+ * Test package-lock.json file detection
+ */
+TEST(RiskAnalyzerTest, PackageLockFileDetection) {
+    EXPECT_TRUE(is_package_lock_file("package-lock.json"));
+    EXPECT_TRUE(is_package_lock_file("path/to/package-lock.json"));
+    EXPECT_TRUE(is_package_lock_file("yarn.lock"));
+    EXPECT_TRUE(is_package_lock_file("pnpm-lock.yaml"));
+    EXPECT_TRUE(is_package_lock_file("bun.lockb"));
+    EXPECT_FALSE(is_package_lock_file("package.json"));
+    EXPECT_FALSE(is_package_lock_file("src/index.ts"));
+}
+
+/**
+ * Test TypeScript critical patterns detection
+ */
+TEST(RiskAnalyzerTest, TypeScriptCriticalPatternsDetected) {
+    std::vector<std::string> code_with_ts_issues = {
+        "const user = data as any;",
+        "// @ts-ignore",
+        "element.innerHTML = userInput;",
+        "localStorage.setItem('password', pwd);"
+    };
+    
+    EXPECT_TRUE(contains_critical_patterns(code_with_ts_issues));
+}
+
+/**
+ * Test TypeScript safe code doesn't trigger false positives
+ */
+TEST(RiskAnalyzerTest, TypeScriptSafeCodeNoFalsePositives) {
+    std::vector<std::string> safe_code = {
+        "const user: User = { name: 'John', age: 30 };",
+        "function greet(name: string): string {",
+        "    return `Hello, ${name}`;",
+        "}"
+    };
+    
+    EXPECT_FALSE(contains_critical_patterns(safe_code));
+}
+
+/**
+ * Test risk analysis includes TypeScript interface changes
+ */
+TEST(RiskAnalyzerTest, RiskAnalysisIncludesTypeScriptChanges) {
+    std::vector<std::string> base = {
+        "interface User {",
+        "    name: string;",
+        "}"
+    };
+    std::vector<std::string> ours = {
+        "interface User {",
+        "    name: string;",
+        "    email: string;",
+        "}"
+    };
+    std::vector<std::string> theirs = base;
+    
+    auto risk = analyze_risk_ours(base, ours, theirs);
+    
+    EXPECT_TRUE(risk.has_api_changes);
+    EXPECT_TRUE(risk.level >= RiskLevel::MEDIUM);
+    
+    // Check if TypeScript-related risk factor is mentioned
+    bool has_ts_risk = false;
+    for (const auto& factor : risk.risk_factors) {
+        if (factor.find("TypeScript") != std::string::npos) {
+            has_ts_risk = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(has_ts_risk);
+}

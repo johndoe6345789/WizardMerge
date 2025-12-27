@@ -18,9 +18,12 @@ WizardMerge uses a multi-frontend architecture with a high-performance C++ backe
 - **Features**: 
   - Three-way merge algorithm
   - Conflict detection and auto-resolution
+  - Context-aware analysis (TypeScript, Python, C++, Java)
+  - Intelligent risk assessment
   - HTTP API endpoints
   - GitHub Pull Request integration
   - Pull request conflict resolution
+  - TypeScript-specific merge support
 
 ### Frontends
 
@@ -208,6 +211,40 @@ When `create_branch: true` is set in the API request:
 - **GitHub**: Use personal access tokens with `repo` scope
 - **GitLab**: Use personal access tokens with `read_api` and `read_repository` scopes
 - Tokens can be passed via `--token` flag or environment variables (`GITHUB_TOKEN`, `GITLAB_TOKEN`)
+
+## TypeScript Support
+
+WizardMerge includes comprehensive TypeScript support for intelligent merge conflict resolution:
+
+### Features
+
+- **Context-Aware Analysis**: Recognizes TypeScript interfaces, types, enums, and arrow functions
+- **Risk Assessment**: Detects breaking changes in type definitions and type safety bypasses
+- **Package Lock Handling**: Smart detection of package-lock.json, yarn.lock, pnpm-lock.yaml, and bun.lockb files
+- **Security Patterns**: Identifies XSS risks (dangerouslySetInnerHTML, innerHTML) and type safety issues (as any, @ts-ignore)
+
+### Supported TypeScript Patterns
+
+- Interfaces, type aliases, and enums
+- Arrow functions and async functions  
+- TypeScript imports (import type, namespace imports)
+- Function signatures with type annotations
+- Export declarations
+
+### Package Lock Conflicts
+
+Package lock files are extremely common sources of merge conflicts. WizardMerge:
+- Automatically detects package lock files
+- Suggests regenerating lock files instead of manual merging
+- Supports npm, Yarn, pnpm, and Bun lock files
+
+**Recommended workflow for lock file conflicts:**
+1. Merge `package.json` manually
+2. Delete the lock file
+3. Run your package manager to regenerate
+4. This ensures consistency and avoids corruption
+
+See [docs/TYPESCRIPT_SUPPORT.md](docs/TYPESCRIPT_SUPPORT.md) for detailed documentation and API examples.
 
 ## Formal Verification
 
