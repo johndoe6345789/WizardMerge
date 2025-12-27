@@ -1,0 +1,61 @@
+name: Documentation Improvement
+description: Suggest improvements or report issues with documentation
+title: "[Docs]: "
+labels: ["documentation", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve our documentation!
+  
+  - type: dropdown
+    id: doc_type
+    attributes:
+      label: Documentation Type
+      description: What type of documentation needs improvement?
+      options:
+        - README
+        - API Documentation
+        - User Guide
+        - Developer Guide
+        - Build Instructions
+        - Architecture Documentation
+        - Code Comments
+        - Research Paper
+        - Other
+    validations:
+      required: true
+  
+  - type: input
+    id: location
+    attributes:
+      label: Documentation Location
+      description: Which file or section needs improvement?
+      placeholder: e.g., README.md, backend/README.md, docs/PAPER.md
+    validations:
+      required: true
+  
+  - type: textarea
+    id: issue
+    attributes:
+      label: Issue Description
+      description: What is unclear, incorrect, or missing in the documentation?
+      placeholder: Describe the documentation issue...
+    validations:
+      required: true
+  
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Improvement
+      description: How should the documentation be improved?
+      placeholder: Describe your suggestion...
+    validations:
+      required: true
+  
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the documentation improvement
+      placeholder: Any additional information...

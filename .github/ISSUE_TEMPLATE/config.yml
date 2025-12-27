@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/johndoe6345789/WizardMerge/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 📚 Documentation
+    url: https://github.com/johndoe6345789/WizardMerge#readme
+    about: Read the documentation to learn more about WizardMerge
+  - name: 🗺️ Roadmap
+    url: https://github.com/johndoe6345789/WizardMerge/blob/main/ROADMAP.md
+    about: View the project roadmap and planned features
