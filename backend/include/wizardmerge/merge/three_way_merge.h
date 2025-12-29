@@ -10,10 +10,10 @@
 #ifndef WIZARDMERGE_MERGE_THREE_WAY_MERGE_H
 #define WIZARDMERGE_MERGE_THREE_WAY_MERGE_H
 
-#include <string>
-#include <vector>
 #include "wizardmerge/analysis/context_analyzer.h"
 #include "wizardmerge/analysis/risk_analyzer.h"
+#include <string>
+#include <vector>
 
 namespace wizardmerge {
 namespace merge {
@@ -22,34 +22,34 @@ namespace merge {
  * @brief Represents a single line in a file with its origin.
  */
 struct Line {
-    std::string content;
-    enum Origin { BASE, OURS, THEIRS, MERGED } origin;
+  std::string content;
+  enum Origin { BASE, OURS, THEIRS, MERGED } origin;
 };
 
 /**
  * @brief Represents a conflict region in the merge result.
  */
 struct Conflict {
-    size_t start_line;
-    size_t end_line;
-    std::vector<Line> base_lines;
-    std::vector<Line> our_lines;
-    std::vector<Line> their_lines;
-    
-    // Context and risk analysis
-    analysis::CodeContext context;
-    analysis::RiskAssessment risk_ours;
-    analysis::RiskAssessment risk_theirs;
-    analysis::RiskAssessment risk_both;
+  size_t start_line;
+  size_t end_line;
+  std::vector<Line> base_lines;
+  std::vector<Line> our_lines;
+  std::vector<Line> their_lines;
+
+  // Context and risk analysis
+  analysis::CodeContext context;
+  analysis::RiskAssessment risk_ours;
+  analysis::RiskAssessment risk_theirs;
+  analysis::RiskAssessment risk_both;
 };
 
 /**
  * @brief Result of a three-way merge operation.
  */
 struct MergeResult {
-    std::vector<Line> merged_lines;
-    std::vector<Conflict> conflicts;
-    bool has_conflicts() const { return !conflicts.empty(); }
+  std::vector<Line> merged_lines;
+  std::vector<Conflict> conflicts;
+  bool has_conflicts() const { return !conflicts.empty(); }
 };
 
 /**
@@ -65,11 +65,9 @@ struct MergeResult {
  * @param theirs Their version (branch being merged)
  * @return MergeResult containing the merged content and any conflicts
  */
-MergeResult three_way_merge(
-    const std::vector<std::string>& base,
-    const std::vector<std::string>& ours,
-    const std::vector<std::string>& theirs
-);
+MergeResult three_way_merge(const std::vector<std::string> &base,
+                            const std::vector<std::string> &ours,
+                            const std::vector<std::string> &theirs);
 
 /**
  * @brief Auto-resolves simple non-conflicting patterns.
@@ -82,9 +80,9 @@ MergeResult three_way_merge(
  * @param result The merge result to auto-resolve
  * @return Updated merge result with resolved conflicts
  */
-MergeResult auto_resolve(const MergeResult& result);
+MergeResult auto_resolve(const MergeResult &result);
 
-}  // namespace merge
-}  // namespace wizardmerge
+} // namespace merge
+} // namespace wizardmerge
 
-#endif  // WIZARDMERGE_MERGE_THREE_WAY_MERGE_H
+#endif // WIZARDMERGE_MERGE_THREE_WAY_MERGE_H
