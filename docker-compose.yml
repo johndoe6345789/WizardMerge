@@ -1,0 +1,16 @@
+name: wizardmerge
+
+services:
+  frontend:
+    build:
+      context: ./frontends/nextjs
+    container_name: wizardmerge-frontend
+    restart: unless-stopped
+    ports:
+      - "8912:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
